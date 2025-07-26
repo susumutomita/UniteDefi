@@ -86,6 +86,7 @@ This project implements Kiro-style Spec-Driven Development for Claude Code using
 
 ### Active Specifications
 - Current spec: Check `.kiro/specs/` for active specifications
+- **fusion-gateway**: Core gateway implementation for cross-chain atomic swaps between EVM and non-EVM chains
 - Use `/spec-status [feature-name]` to check progress
 
 ## Development Guidelines
@@ -172,6 +173,42 @@ When working on implementation:
 1. Initialize steering documents: `/steering-init`
 2. Create your first spec: `/spec-init [your-feature-name]`
 3. Follow the workflow through requirements, design, and tasks
+
+## GitHub Issue Workflow
+
+開発を始める前に、必ずGitHub Issueを作成してください：
+
+1. **Issue作成**: 新機能や修正の前に、GitHub上で対応するIssueを作成
+2. **Issue内容**: 
+   - 明確なタイトル
+   - 実装する機能や修正内容の詳細説明
+   - 受け入れ基準（Acceptance Criteria）
+   - 関連するspecファイルへの参照
+3. **Issue番号の使用**: コミットメッセージやPRにIssue番号を含める（例: `feat: HTLCコントラクト実装 #123`）
+4. **Issueのクローズ**: 実装完了後、関連するPRでIssueをクローズ（`Closes #123`をPR説明に含める）
+
+### Issueテンプレート例
+
+```markdown
+## 概要
+[機能や修正内容の簡潔な説明]
+
+## 背景・目的
+[なぜこの機能が必要なのか]
+
+## 受け入れ基準
+- [ ] [具体的な完了条件1]
+- [ ] [具体的な完了条件2]
+- [ ] テストが全て通る
+- [ ] ドキュメントが更新されている
+
+## 関連spec
+- spec名: [feature-name]
+- specファイル: `.kiro/specs/[feature-name]/`
+
+## 技術的な考慮事項
+[実装上の注意点や制約事項]
+```
 
 ## Kiro Steering Details
 

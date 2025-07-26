@@ -1,0 +1,21 @@
+[package]
+name = "fusion-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+sha2.workspace = true
+hex.workspace = true
+async-trait.workspace = true
+chrono = { version = "0.4", features = ["serde"] }
+rand.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+mockall.workspace = true
+proptest.workspace = true
+test-case.workspace = true
