@@ -1,4 +1,4 @@
-.PHONY: install lint lint_fix test format_check setup_husky before_commit help
+.PHONY: install lint lint_fix test format format_check setup_husky before_commit help
 
 PNPM_RUN_TARGETS = preview
 
@@ -7,7 +7,7 @@ $(PNPM_RUN_TARGETS):
 
 .PHONY: lint
 lint:
-	pnpm run lint || true
+	pnpm run lint
 
 .PHONY: install
 install:
@@ -21,6 +21,10 @@ lint_fix:
 .PHONY: test
 test:
 	cargo test --workspace
+
+.PHONY: format
+format:
+	cargo fmt --all
 
 .PHONY: format_check
 format_check:
@@ -39,5 +43,6 @@ help:
 	@echo "  make lint         - Run textlint on markdown files"
 	@echo "  make lint_fix     - Fix textlint errors"
 	@echo "  make test         - Run Rust tests"
+	@echo "  make format       - Format Rust code"
 	@echo "  make format_check - Check Rust code formatting"
 	@echo "  make before_commit- Run all checks before commit"
