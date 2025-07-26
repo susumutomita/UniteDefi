@@ -1,11 +1,6 @@
 [workspace]
 members = [
     "fusion-core",
-    "fusion-cli",
-    "chains/ethereum",
-    "chains/near",
-    "chains/cosmos",
-    "chains/stellar",
 ]
 resolver = "2"
 
