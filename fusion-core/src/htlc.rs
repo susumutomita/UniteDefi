@@ -1,22 +1,28 @@
 use rand::Rng;
 use sha2::{Digest, Sha256};
-use std::time::{Duration, Instant};
+use std::time::{Duration, SystemTime};
 use subtle::ConstantTimeEq;
 use thiserror::Error;
 
+/// 32バイトのシークレット型
+pub type Secret = [u8; 32];
+
+/// 32バイトのシークレットハッシュ型
+pub type SecretHash = [u8; 32];
+
 /// 32バイトのランダムなシークレットを生成する
-pub fn generate_secret() -> Vec<u8> {
+pub fn generate_secret() -> Secret {
     let mut rng = rand::thread_rng();
-    let mut secret = vec![0u8; 32];
+    let mut secret = [0u8; 32];
     rng.fill(&mut secret[..]);
     secret
 }
 
 /// シークレットのSHA256ハッシュを計算する
-pub fn hash_secret(secret: &[u8]) -> Vec<u8> {
+pub fn hash_secret(secret: &Secret) -> SecretHash {
     let mut hasher = Sha256::new();
     hasher.update(secret);
-    hasher.finalize().to_vec()
+    hasher.finalize().into()
 }
 
 /// HTLCのエラー型
@@ -49,9 +55,9 @@ pub struct Htlc {
     sender: String,
     recipient: String,
     amount: u64,
-    secret_hash: Vec<u8>,
+    secret_hash: SecretHash,
     timeout: Duration,
-    created_at: Instant,
+    created_at: SystemTime,
     state: HtlcState,
 }
 
@@ -61,7 +67,7 @@ impl Htlc {
         sender: String,
         recipient: String,
         amount: u64,
-        secret_hash: Vec<u8>,
+        secret_hash: SecretHash,
         timeout: Duration,
     ) -> Result<Self, HtlcError> {
         // 入力検証
@@ -74,11 +80,6 @@ impl Htlc {
         if amount == 0 {
             return Err(HtlcError::InvalidInput("Amount must be positive".into()));
         }
-        if secret_hash.len() != 32 {
-            return Err(HtlcError::InvalidInput(
-                "Secret hash must be 32 bytes".into(),
-            ));
-        }
 
         Ok(Self {
             sender,
@@ -86,7 +87,7 @@ impl Htlc {
             amount,
             secret_hash,
             timeout,
-            created_at: Instant::now(),
+            created_at: SystemTime::now(),
             state: HtlcState::Pending,
         })
     }
@@ -112,17 +113,20 @@ impl Htlc {
     }
 
     /// シークレットハッシュを取得
-    pub fn secret_hash(&self) -> &Vec<u8> {
+    pub fn secret_hash(&self) -> &SecretHash {
         &self.secret_hash
     }
 
     /// タイムアウトしているかチェック
     pub fn is_timed_out(&self) -> bool {
-        self.created_at.elapsed() > self.timeout
+        match SystemTime::now().duration_since(self.created_at) {
+            Ok(elapsed) => elapsed > self.timeout,
+            Err(_) => true, // 時刻が過去の場合もタイムアウトとする
+        }
     }
 
     /// シークレットを提供してクレーム
-    pub fn claim(&mut self, secret: &[u8]) -> Result<(), HtlcError> {
+    pub fn claim(&mut self, secret: &Secret) -> Result<(), HtlcError> {
         // 状態チェック
         if self.state != HtlcState::Pending {
             return Err(HtlcError::InvalidState);

@@ -8,12 +8,12 @@ fn main() {
     // 1. シークレットを生成
     let secret = generate_secret();
     println!("1. シークレットを生成しました（32バイト）");
-    println!("   シークレット: 0x{}", hex::encode(&secret));
+    println!("   シークレット: 0x{}", hex::encode(secret));
 
     // 2. シークレットハッシュを計算
     let secret_hash = hash_secret(&secret);
     println!("\n2. シークレットハッシュを計算しました");
-    println!("   ハッシュ: 0x{}", hex::encode(&secret_hash));
+    println!("   ハッシュ: 0x{}", hex::encode(secret_hash));
 
     // 3. HTLCを作成（Alice → Bob）
     let amount = 1000u64;
@@ -28,7 +28,7 @@ fn main() {
     ) {
         Ok(htlc) => htlc,
         Err(e) => {
-            println!("HTLC作成エラー: {}", e);
+            println!("HTLC作成エラー: {e}");
             return;
         }
     };
@@ -48,7 +48,7 @@ fn main() {
             println!("   現在の状態: {:?}", htlc.state());
         }
         Err(e) => {
-            println!("   ✗ クレーム失敗: {}", e);
+            println!("   ✗ クレーム失敗: {e}");
         }
     }
 
@@ -64,7 +64,7 @@ fn main() {
     ) {
         Ok(htlc) => htlc,
         Err(e) => {
-            println!("HTLC作成エラー: {}", e);
+            println!("HTLC作成エラー: {e}");
             return;
         }
     };
@@ -76,7 +76,7 @@ fn main() {
     println!("\n6. タイムアウト前にリファンドを試みます...");
     match htlc2.refund() {
         Ok(_) => println!("   ✓ リファンド成功"),
-        Err(e) => println!("   ✗ リファンド失敗（期待通り）: {}", e),
+        Err(e) => println!("   ✗ リファンド失敗（期待通り）: {e}"),
     }
 
     // 3秒待つ
@@ -91,7 +91,7 @@ fn main() {
             println!("   現在の状態: {:?}", htlc2.state());
         }
         Err(e) => {
-            println!("   ✗ リファンド失敗: {}", e);
+            println!("   ✗ リファンド失敗: {e}");
         }
     }
 

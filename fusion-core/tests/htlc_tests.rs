@@ -4,7 +4,12 @@ use std::time::Duration;
 #[test]
 fn test_generate_secret_creates_32_bytes() {
     let secret = generate_secret();
-    assert_eq!(secret.len(), 32, "Secret should be 32 bytes");
+    // 固定長配列なので常に32バイト
+    assert_eq!(
+        std::mem::size_of_val(&secret),
+        32,
+        "Secret should be 32 bytes"
+    );
 }
 
 #[test]
@@ -19,7 +24,7 @@ fn test_generate_secret_is_random() {
 
 #[test]
 fn test_hash_secret_produces_consistent_output() {
-    let secret = vec![1u8; 32]; // テスト用の固定シークレット
+    let secret = [1u8; 32]; // テスト用の固定シークレット
     let hash1 = hash_secret(&secret);
     let hash2 = hash_secret(&secret);
     assert_eq!(hash1, hash2, "Same secret should produce same hash");
@@ -29,13 +34,17 @@ fn test_hash_secret_produces_consistent_output() {
 fn test_hash_secret_produces_32_byte_output() {
     let secret = generate_secret();
     let hash = hash_secret(&secret);
-    assert_eq!(hash.len(), 32, "Hash should be 32 bytes (SHA256)");
+    assert_eq!(
+        std::mem::size_of_val(&hash),
+        32,
+        "Hash should be 32 bytes (SHA256)"
+    );
 }
 
 #[test]
 fn test_different_secrets_produce_different_hashes() {
-    let secret1 = vec![1u8; 32];
-    let secret2 = vec![2u8; 32];
+    let secret1 = [1u8; 32];
+    let secret2 = [2u8; 32];
     let hash1 = hash_secret(&secret1);
     let hash2 = hash_secret(&secret2);
     assert_ne!(
@@ -55,7 +64,7 @@ fn test_htlc_creation() {
         "Alice".to_string(),
         "Bob".to_string(),
         amount,
-        secret_hash.clone(),
+        secret_hash,
         timeout,
     )
     .expect("Failed to create HTLC");
@@ -195,22 +204,8 @@ fn test_htlc_creation_with_zero_amount() {
     }
 }
 
-#[test]
-fn test_htlc_creation_with_invalid_hash_length() {
-    let result = Htlc::new(
-        "Alice".to_string(),
-        "Bob".to_string(),
-        1000,
-        vec![0u8; 16], // 不正なハッシュ長（16バイト）
-        Duration::from_secs(3600),
-    );
-
-    assert!(result.is_err());
-    match result.unwrap_err() {
-        HtlcError::InvalidInput(msg) => assert!(msg.contains("Secret hash must be 32 bytes")),
-        _ => panic!("Expected InvalidInput error"),
-    }
-}
+// test_htlc_creation_with_invalid_hash_length は削除
+// 固定長配列により、コンパイル時に保証されるため不要
 
 #[test]
 fn test_htlc_double_claim() {

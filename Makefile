@@ -1,22 +1,42 @@
-.PHONY: install lint lint_fix test format format_check setup_husky before_commit help
+.PHONY: install lint lint_md lint_rust lint_yaml lint_fix lint_fix_md lint_fix_rust test format format_check setup_husky before_commit help
 
 PNPM_RUN_TARGETS = preview
 
 $(PNPM_RUN_TARGETS):
 	pnpm run $@
 
-.PHONY: lint
-lint:
+.PHONY: lint_md
+lint_md:
 	pnpm run lint
+
+.PHONY: lint_rust
+lint_rust:
+	cargo clippy --all-targets --all-features -- -D warnings
+
+.PHONY: lint_yaml
+lint_yaml:
+	pnpm run lint:yaml
+
+.PHONY: lint
+lint: lint_md lint_rust lint_yaml
+	@echo "All lint checks completed"
 
 .PHONY: install
 install:
 	pnpm install
 	cargo --version || (echo "Rust is not installed. Please install from https://rustup.rs/" && exit 1)
 
-.PHONY: lint_fix
-lint_fix:
+.PHONY: lint_fix_md
+lint_fix_md:
 	pnpm run lint:fix
+
+.PHONY: lint_fix_rust
+lint_fix_rust:
+	cargo clippy --all-targets --all-features --fix --allow-dirty --allow-staged
+
+.PHONY: lint_fix
+lint_fix: lint_fix_md lint_fix_rust
+	@echo "All lint fixes completed"
 
 .PHONY: test
 test:
@@ -39,10 +59,15 @@ before_commit: lint format_check test
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  make install      - Install Node.js dependencies and check Rust"
-	@echo "  make lint         - Run textlint on markdown files"
-	@echo "  make lint_fix     - Fix textlint errors"
-	@echo "  make test         - Run Rust tests"
-	@echo "  make format       - Format Rust code"
-	@echo "  make format_check - Check Rust code formatting"
-	@echo "  make before_commit- Run all checks before commit"
+	@echo "  make install       - Install Node.js dependencies and check Rust"
+	@echo "  make lint          - Run all linters (Markdown, Rust, YAML)"
+	@echo "  make lint_md       - Run textlint on markdown files"
+	@echo "  make lint_rust     - Run cargo clippy on Rust code"
+	@echo "  make lint_yaml     - Run yamllint on YAML files"
+	@echo "  make lint_fix      - Fix all auto-fixable lint issues"
+	@echo "  make lint_fix_md   - Fix textlint errors"
+	@echo "  make lint_fix_rust - Fix clippy warnings"
+	@echo "  make test          - Run Rust tests"
+	@echo "  make format        - Format Rust code"
+	@echo "  make format_check  - Check Rust code formatting"
+	@echo "  make before_commit - Run all checks before commit"

@@ -211,6 +211,7 @@ MIT License - see LICENSE file for details
 - [Technical Deep Dive](./docs/Fusion-Plus-Technical-Guide.md)
 - [Winning Ideas](./docs/優勝アイデア.md)
 - [Workshop Notes](https://www.youtube.com/watch?v=W2xCf-TCnwc)
+- [DeepWiki](https://deepwiki.com/susumutomita/UniteDefi)
 
 ## 🚧 Future Roadmap
 
@@ -218,11 +219,3 @@ MIT License - see LICENSE file for details
 2. **Phase 2**: Web interface and SDK
 3. **Phase 3**: Integration with 1inch production infrastructure
 4. **Phase 4**: Decentralized relayer network
-
-## Contribution
-
-We welcome contributions. Please submit proposals via pull requests or issues.
-
----
-
-Built with ❤️ for ETHGlobal Unite 2025
