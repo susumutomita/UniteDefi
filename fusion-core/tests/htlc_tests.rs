@@ -1,4 +1,4 @@
-use fusion_core::htlc::{generate_secret, hash_secret, Htlc, HtlcState};
+use fusion_core::htlc::{generate_secret, hash_secret, Htlc, HtlcError, HtlcState};
 use std::time::Duration;
 
 #[test]
@@ -57,7 +57,8 @@ fn test_htlc_creation() {
         amount,
         secret_hash.clone(),
         timeout,
-    );
+    )
+    .expect("Failed to create HTLC");
 
     assert_eq!(htlc.state(), &HtlcState::Pending);
     assert_eq!(htlc.sender(), "Alice");
@@ -77,7 +78,8 @@ fn test_htlc_claim_with_correct_secret() {
         1000,
         secret_hash,
         Duration::from_secs(3600),
-    );
+    )
+    .expect("Failed to create HTLC");
 
     // 正しいシークレットでクレーム
     let result = htlc.claim(&secret);
@@ -97,7 +99,8 @@ fn test_htlc_claim_with_wrong_secret() {
         1000,
         secret_hash,
         Duration::from_secs(3600),
-    );
+    )
+    .expect("Failed to create HTLC");
 
     // 間違ったシークレットでクレーム
     let result = htlc.claim(&wrong_secret);
@@ -116,7 +119,8 @@ fn test_htlc_refund_after_timeout() {
         1000,
         secret_hash,
         Duration::from_secs(1), // 1秒でタイムアウト
-    );
+    )
+    .expect("Failed to create HTLC");
 
     // タイムアウト前のリファンドは失敗
     let result = htlc.refund();
@@ -129,4 +133,137 @@ fn test_htlc_refund_after_timeout() {
     let result = htlc.refund();
     assert!(result.is_ok());
     assert_eq!(htlc.state(), &HtlcState::Refunded);
+}
+
+#[test]
+fn test_htlc_creation_with_empty_sender() {
+    let secret = generate_secret();
+    let secret_hash = hash_secret(&secret);
+
+    let result = Htlc::new(
+        "".to_string(), // 空の送信者
+        "Bob".to_string(),
+        1000,
+        secret_hash,
+        Duration::from_secs(3600),
+    );
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        HtlcError::InvalidInput(msg) => assert!(msg.contains("Sender cannot be empty")),
+        _ => panic!("Expected InvalidInput error"),
+    }
+}
+
+#[test]
+fn test_htlc_creation_with_empty_recipient() {
+    let secret = generate_secret();
+    let secret_hash = hash_secret(&secret);
+
+    let result = Htlc::new(
+        "Alice".to_string(),
+        "".to_string(), // 空の受信者
+        1000,
+        secret_hash,
+        Duration::from_secs(3600),
+    );
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        HtlcError::InvalidInput(msg) => assert!(msg.contains("Recipient cannot be empty")),
+        _ => panic!("Expected InvalidInput error"),
+    }
+}
+
+#[test]
+fn test_htlc_creation_with_zero_amount() {
+    let secret = generate_secret();
+    let secret_hash = hash_secret(&secret);
+
+    let result = Htlc::new(
+        "Alice".to_string(),
+        "Bob".to_string(),
+        0, // ゼロ金額
+        secret_hash,
+        Duration::from_secs(3600),
+    );
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        HtlcError::InvalidInput(msg) => assert!(msg.contains("Amount must be positive")),
+        _ => panic!("Expected InvalidInput error"),
+    }
+}
+
+#[test]
+fn test_htlc_creation_with_invalid_hash_length() {
+    let result = Htlc::new(
+        "Alice".to_string(),
+        "Bob".to_string(),
+        1000,
+        vec![0u8; 16], // 不正なハッシュ長（16バイト）
+        Duration::from_secs(3600),
+    );
+
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        HtlcError::InvalidInput(msg) => assert!(msg.contains("Secret hash must be 32 bytes")),
+        _ => panic!("Expected InvalidInput error"),
+    }
+}
+
+#[test]
+fn test_htlc_double_claim() {
+    let secret = generate_secret();
+    let secret_hash = hash_secret(&secret);
+
+    let mut htlc = Htlc::new(
+        "Alice".to_string(),
+        "Bob".to_string(),
+        1000,
+        secret_hash,
+        Duration::from_secs(3600),
+    )
+    .expect("Failed to create HTLC");
+
+    // 最初のクレームは成功
+    assert!(htlc.claim(&secret).is_ok());
+    assert_eq!(htlc.state(), &HtlcState::Claimed);
+
+    // 二回目のクレーム試行は失敗
+    let result = htlc.claim(&secret);
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        HtlcError::InvalidState => (),
+        _ => panic!("Expected InvalidState error"),
+    }
+}
+
+#[test]
+fn test_htlc_refund_after_claim() {
+    let secret = generate_secret();
+    let secret_hash = hash_secret(&secret);
+
+    let mut htlc = Htlc::new(
+        "Alice".to_string(),
+        "Bob".to_string(),
+        1000,
+        secret_hash,
+        Duration::from_secs(1), // 短いタイムアウト
+    )
+    .expect("Failed to create HTLC");
+
+    // クレーム実行
+    assert!(htlc.claim(&secret).is_ok());
+
+    // タイムアウトを待つ
+    std::thread::sleep(Duration::from_secs(2));
+
+    // クレーム後のリファンドは失敗
+    let result = htlc.refund();
+    assert!(result.is_err());
+    match result.unwrap_err() {
+        HtlcError::InvalidState => (),
+        _ => panic!("Expected InvalidState error"),
+    }
 }

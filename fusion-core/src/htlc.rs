@@ -1,6 +1,7 @@
 use rand::Rng;
 use sha2::{Digest, Sha256};
 use std::time::{Duration, Instant};
+use subtle::ConstantTimeEq;
 use thiserror::Error;
 
 /// 32バイトのランダムなシークレットを生成する
@@ -27,6 +28,8 @@ pub enum HtlcError {
     NotTimedOut,
     #[error("HTLC is not in pending state")]
     InvalidState,
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
 }
 
 /// HTLCの状態
@@ -60,8 +63,24 @@ impl Htlc {
         amount: u64,
         secret_hash: Vec<u8>,
         timeout: Duration,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, HtlcError> {
+        // 入力検証
+        if sender.is_empty() {
+            return Err(HtlcError::InvalidInput("Sender cannot be empty".into()));
+        }
+        if recipient.is_empty() {
+            return Err(HtlcError::InvalidInput("Recipient cannot be empty".into()));
+        }
+        if amount == 0 {
+            return Err(HtlcError::InvalidInput("Amount must be positive".into()));
+        }
+        if secret_hash.len() != 32 {
+            return Err(HtlcError::InvalidInput(
+                "Secret hash must be 32 bytes".into(),
+            ));
+        }
+
+        Ok(Self {
             sender,
             recipient,
             amount,
@@ -69,7 +88,7 @@ impl Htlc {
             timeout,
             created_at: Instant::now(),
             state: HtlcState::Pending,
-        }
+        })
     }
 
     /// 現在の状態を取得
@@ -109,9 +128,9 @@ impl Htlc {
             return Err(HtlcError::InvalidState);
         }
 
-        // シークレットの検証
+        // シークレットの検証（定数時間比較を使用）
         let provided_hash = hash_secret(secret);
-        if provided_hash != self.secret_hash {
+        if provided_hash.ct_eq(&self.secret_hash).unwrap_u8() != 1 {
             return Err(HtlcError::InvalidSecret);
         }
 

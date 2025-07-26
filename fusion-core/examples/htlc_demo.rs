@@ -19,13 +19,19 @@ fn main() {
     let amount = 1000u64;
     let timeout = Duration::from_secs(5); // 5秒のタイムアウト
 
-    let mut htlc = Htlc::new(
+    let mut htlc = match Htlc::new(
         "Alice".to_string(),
         "Bob".to_string(),
         amount,
         secret_hash,
         timeout,
-    );
+    ) {
+        Ok(htlc) => htlc,
+        Err(e) => {
+            println!("HTLC作成エラー: {}", e);
+            return;
+        }
+    };
 
     println!("\n3. HTLCを作成しました");
     println!("   送信者: {}", htlc.sender());
@@ -49,13 +55,19 @@ fn main() {
     // 5. 別のHTLCでタイムアウトのシナリオをデモ
     println!("\n=== タイムアウトシナリオ ===");
 
-    let mut htlc2 = Htlc::new(
+    let mut htlc2 = match Htlc::new(
         "Alice".to_string(),
         "Bob".to_string(),
         amount,
         hash_secret(&generate_secret()), // 別のシークレットハッシュ
         Duration::from_secs(2),          // 2秒のタイムアウト
-    );
+    ) {
+        Ok(htlc) => htlc,
+        Err(e) => {
+            println!("HTLC作成エラー: {}", e);
+            return;
+        }
+    };
 
     println!("\n5. 新しいHTLCを作成しました（2秒のタイムアウト）");
     println!("   現在の状態: {:?}", htlc2.state());
