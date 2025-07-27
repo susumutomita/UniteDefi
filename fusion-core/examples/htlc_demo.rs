@@ -8,24 +8,30 @@ fn main() {
     // 1. シークレットを生成
     let secret = generate_secret();
     println!("1. シークレットを生成しました（32バイト）");
-    println!("   シークレット: 0x{}", hex::encode(&secret));
+    println!("   シークレット: 0x{}", hex::encode(secret));
 
     // 2. シークレットハッシュを計算
     let secret_hash = hash_secret(&secret);
     println!("\n2. シークレットハッシュを計算しました");
-    println!("   ハッシュ: 0x{}", hex::encode(&secret_hash));
+    println!("   ハッシュ: 0x{}", hex::encode(secret_hash));
 
     // 3. HTLCを作成（Alice → Bob）
     let amount = 1000u64;
     let timeout = Duration::from_secs(5); // 5秒のタイムアウト
 
-    let mut htlc = Htlc::new(
+    let mut htlc = match Htlc::new(
         "Alice".to_string(),
         "Bob".to_string(),
         amount,
         secret_hash,
         timeout,
-    );
+    ) {
+        Ok(htlc) => htlc,
+        Err(e) => {
+            println!("HTLC作成エラー: {e}");
+            return;
+        }
+    };
 
     println!("\n3. HTLCを作成しました");
     println!("   送信者: {}", htlc.sender());
@@ -42,20 +48,26 @@ fn main() {
             println!("   現在の状態: {:?}", htlc.state());
         }
         Err(e) => {
-            println!("   ✗ クレーム失敗: {}", e);
+            println!("   ✗ クレーム失敗: {e}");
         }
     }
 
     // 5. 別のHTLCでタイムアウトのシナリオをデモ
     println!("\n=== タイムアウトシナリオ ===");
 
-    let mut htlc2 = Htlc::new(
+    let mut htlc2 = match Htlc::new(
         "Alice".to_string(),
         "Bob".to_string(),
         amount,
         hash_secret(&generate_secret()), // 別のシークレットハッシュ
         Duration::from_secs(2),          // 2秒のタイムアウト
-    );
+    ) {
+        Ok(htlc) => htlc,
+        Err(e) => {
+            println!("HTLC作成エラー: {e}");
+            return;
+        }
+    };
 
     println!("\n5. 新しいHTLCを作成しました（2秒のタイムアウト）");
     println!("   現在の状態: {:?}", htlc2.state());
@@ -64,7 +76,7 @@ fn main() {
     println!("\n6. タイムアウト前にリファンドを試みます...");
     match htlc2.refund() {
         Ok(_) => println!("   ✓ リファンド成功"),
-        Err(e) => println!("   ✗ リファンド失敗（期待通り）: {}", e),
+        Err(e) => println!("   ✗ リファンド失敗（期待通り）: {e}"),
     }
 
     // 3秒待つ
@@ -79,7 +91,7 @@ fn main() {
             println!("   現在の状態: {:?}", htlc2.state());
         }
         Err(e) => {
-            println!("   ✗ リファンド失敗: {}", e);
+            println!("   ✗ リファンド失敗: {e}");
         }
     }
 
