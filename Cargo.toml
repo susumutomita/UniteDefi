@@ -3,6 +3,7 @@ members = [
     "fusion-cli",
     "fusion-core",
     "contracts/near-htlc",
+    "contracts/near-htlc/test-token",
 ]
 resolver = "2"
 
@@ -38,3 +39,11 @@ subtle = "2.5"
 mockall = "0.12"
 proptest = "1.4"
 test-case = "3.3"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

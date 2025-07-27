@@ -16,7 +16,7 @@ use near_workspaces::types::NearToken;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
-const WASM_FILEPATH: &str = "./target/wasm32-unknown-unknown/release/near_htlc.wasm";
+const WASM_FILEPATH: &str = "../../target/wasm32-unknown-unknown/release/near_htlc.wasm";
 
 #[tokio::test]
 #[ignore = "WASM deserialization error - needs investigation"]
@@ -229,12 +229,12 @@ async fn test_reentrancy_protection_batch_cancel() -> Result<(), Box<dyn std::er
 }
 
 #[tokio::test]
-#[ignore = "Test token WASM not available - run 'cargo build --target wasm32-unknown-unknown --release --bin test_token' to enable"]
+#[ignore = "Test token WASM not available - run 'cargo build -p test-token --target wasm32-unknown-unknown --release' to enable"]
 async fn test_nep141_token_escrow() -> Result<(), Box<dyn std::error::Error>> {
     let worker = near_workspaces::sandbox().await?;
 
     // Deploy token contract first
-    let token_wasm = std::fs::read("./target/wasm32-unknown-unknown/release/test_token.wasm")?;
+    let token_wasm = std::fs::read("../../target/wasm32-unknown-unknown/release/test_token.wasm")?;
     let token_contract = worker.dev_deploy(&token_wasm).await?;
 
     // Deploy HTLC contract
