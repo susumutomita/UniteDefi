@@ -1,4 +1,20 @@
-.PHONY: install lint lint_md lint_rust lint_yaml lint_fix lint_fix_md lint_fix_rust test format format_check setup_husky before_commit help
+.PHONY: help install lint lint_md lint_rust lint_yaml lint_fix lint_fix_md lint_fix_rust test format format_check setup_husky before_commit
+
+.PHONY: help
+help:
+	@echo "Available targets:"
+	@echo "  make install       - Install Node.js dependencies and check Rust"
+	@echo "  make lint          - Run all linters (Markdown, Rust, YAML)"
+	@echo "  make lint_md       - Run textlint on markdown files"
+	@echo "  make lint_rust     - Run cargo clippy on Rust code"
+	@echo "  make lint_yaml     - Run yamllint on YAML files"
+	@echo "  make lint_fix      - Fix all auto-fixable lint issues"
+	@echo "  make lint_fix_md   - Fix textlint errors"
+	@echo "  make lint_fix_rust - Fix clippy warnings"
+	@echo "  make test          - Run Rust tests"
+	@echo "  make format        - Format Rust code"
+	@echo "  make format_check  - Check Rust code formatting"
+	@echo "  make before_commit - Run all checks before commit"
 
 PNPM_RUN_TARGETS = preview
 
@@ -55,19 +71,3 @@ setup_husky:
 
 .PHONY: before_commit
 before_commit: lint format_check test
-
-.PHONY: help
-help:
-	@echo "Available targets:"
-	@echo "  make install       - Install Node.js dependencies and check Rust"
-	@echo "  make lint          - Run all linters (Markdown, Rust, YAML)"
-	@echo "  make lint_md       - Run textlint on markdown files"
-	@echo "  make lint_rust     - Run cargo clippy on Rust code"
-	@echo "  make lint_yaml     - Run yamllint on YAML files"
-	@echo "  make lint_fix      - Fix all auto-fixable lint issues"
-	@echo "  make lint_fix_md   - Fix textlint errors"
-	@echo "  make lint_fix_rust - Fix clippy warnings"
-	@echo "  make test          - Run Rust tests"
-	@echo "  make format        - Format Rust code"
-	@echo "  make format_check  - Check Rust code formatting"
-	@echo "  make before_commit - Run all checks before commit"
