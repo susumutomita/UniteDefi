@@ -1,0 +1,125 @@
+use anyhow::Result;
+use clap::{Args, Parser, Subcommand};
+use fusion_core::htlc::{generate_secret, hash_secret, Htlc};
+use serde_json::json;
+use std::time::Duration;
+
+#[derive(Parser)]
+#[command(name = "fusion-cli")]
+#[command(about = "Fusion+ Universal Rust Gateway CLI")]
+#[command(version = "0.1.0")]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Create a new HTLC
+    CreateHtlc(CreateHtlcArgs),
+    /// Claim an existing HTLC with secret
+    Claim(ClaimArgs),
+    /// Refund an HTLC after timeout
+    Refund(RefundArgs),
+}
+
+#[derive(Args)]
+struct CreateHtlcArgs {
+    /// Sender address
+    #[arg(long)]
+    sender: String,
+    /// Recipient address
+    #[arg(long)]
+    recipient: String,
+    /// Amount to transfer
+    #[arg(long)]
+    amount: u64,
+    /// Timeout duration in seconds
+    #[arg(long, default_value = "3600")]
+    timeout: u64,
+}
+
+#[derive(Args)]
+struct ClaimArgs {
+    /// HTLC identifier
+    #[arg(long)]
+    htlc_id: String,
+    /// Secret to claim the HTLC
+    #[arg(long)]
+    secret: String,
+}
+
+#[derive(Args)]
+struct RefundArgs {
+    /// HTLC identifier
+    #[arg(long)]
+    htlc_id: String,
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::CreateHtlc(args) => handle_create_htlc(args).await,
+        Commands::Claim(args) => handle_claim(args).await,
+        Commands::Refund(args) => handle_refund(args).await,
+    }
+}
+
+async fn handle_create_htlc(args: CreateHtlcArgs) -> Result<()> {
+    // Generate secret and hash
+    let secret = generate_secret();
+    let secret_hash = hash_secret(&secret);
+
+    // Create HTLC
+    let htlc = Htlc::new(
+        args.sender,
+        args.recipient,
+        args.amount,
+        secret_hash,
+        Duration::from_secs(args.timeout),
+    )?;
+
+    // Generate a simple HTLC ID (in real implementation, this would be a proper hash)
+    let htlc_id = format!("htlc_{}", hex::encode(&secret_hash[..8]));
+
+    // Output result as JSON
+    let output = json!({
+        "htlc_id": htlc_id,
+        "secret": hex::encode(secret),
+        "secret_hash": hex::encode(secret_hash),
+        "sender": htlc.sender(),
+        "recipient": htlc.recipient(),
+        "amount": htlc.amount(),
+        "timeout_seconds": args.timeout,
+        "status": "Pending"
+    });
+
+    println!("{}", serde_json::to_string_pretty(&output)?);
+    Ok(())
+}
+
+async fn handle_claim(_args: ClaimArgs) -> Result<()> {
+    // TODO: Implement claim logic
+    // For now, return a placeholder response
+    let output = json!({
+        "error": "Claim functionality not yet implemented",
+        "message": "This feature will be implemented in Issue #16"
+    });
+
+    println!("{}", serde_json::to_string_pretty(&output)?);
+    Ok(())
+}
+
+async fn handle_refund(_args: RefundArgs) -> Result<()> {
+    // TODO: Implement refund logic
+    // For now, return a placeholder response
+    let output = json!({
+        "error": "Refund functionality not yet implemented",
+        "message": "This feature will be implemented in Issue #17"
+    });
+
+    println!("{}", serde_json::to_string_pretty(&output)?);
+    Ok(())
+}

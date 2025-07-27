@@ -1,4 +1,4 @@
-.PHONY: help install lint lint_md lint_rust lint_yaml lint_fix lint_fix_md lint_fix_rust test format format_check setup_husky before_commit
+.PHONY: help install lint lint_md lint_rust lint_yaml lint_fix lint_fix_md lint_fix_rust test test_coverage test_coverage_html coverage_open format format_check setup_husky before_commit
 
 .PHONY: help
 help:
@@ -12,6 +12,9 @@ help:
 	@echo "  make lint_fix_md   - Fix textlint errors"
 	@echo "  make lint_fix_rust - Fix clippy warnings"
 	@echo "  make test          - Run Rust tests"
+	@echo "  make test_coverage - Run tests with coverage report"
+	@echo "  make test_coverage_html - Run tests with HTML coverage report"
+	@echo "  make coverage_open - Open HTML coverage report in browser"
 	@echo "  make format        - Format Rust code"
 	@echo "  make format_check  - Check Rust code formatting"
 	@echo "  make before_commit - Run all checks before commit"
@@ -58,6 +61,24 @@ lint_fix: lint_fix_md lint_fix_rust
 test:
 	cargo test --workspace
 
+.PHONY: test_coverage
+test_coverage:
+	cargo llvm-cov --workspace
+
+.PHONY: test_coverage_html
+test_coverage_html:
+	cargo llvm-cov --workspace --html
+	@echo "Coverage report generated in target/llvm-cov/html/index.html"
+
+.PHONY: coverage_open
+coverage_open:
+	@if [ -f target/llvm-cov/html/index.html ]; then \
+		open target/llvm-cov/html/index.html; \
+		echo "Opening coverage report in browser..."; \
+	else \
+		echo "Coverage report not found. Run 'make test_coverage_html' first."; \
+	fi
+
 .PHONY: format
 format:
 	cargo fmt --all
@@ -70,4 +91,4 @@ setup_husky:
 	pnpm run husky
 
 .PHONY: before_commit
-before_commit: lint format_check test
+before_commit: lint format_check test_coverage
