@@ -42,6 +42,7 @@ lint: lint_md lint_rust lint_yaml
 
 .PHONY: install
 install:
+	git submodule update --init --recursive
 	pnpm install
 	cargo --version || (echo "Rust is not installed. Please install from https://rustup.rs/" && exit 1)
 

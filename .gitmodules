@@ -1,0 +1,12 @@
+[submodule "references/fusion-sdk"]
+	path = references/fusion-sdk
+	url = https://github.com/1inch/fusion-sdk
+[submodule "references/cross-chain-swap"]
+	path = references/cross-chain-swap
+	url = https://github.com/1inch/cross-chain-swap
+[submodule "references/cross-chain-resolver-example"]
+	path = references/cross-chain-resolver-example
+	url = https://github.com/1inch/cross-chain-resolver-example
+[submodule "references/fusion-resolver-example"]
+	path = references/fusion-resolver-example
+	url = https://github.com/1inch/fusion-resolver-example
