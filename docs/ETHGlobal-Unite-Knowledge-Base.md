@@ -15,9 +15,13 @@
 - 1inch Blog Announcement: https://blog.1inch.io/unite-defi-1inch-ethglobal-hackathon/
 
 ### Technical Documentation
+- 1inch Hackathon Guide (Official): https://carnelian-raft-206.notion.site/Building-with-1inch-132af144f6708092be0ee25ec80cec4d
 - 1inch Developer Portal: https://docs.1inch.io/
-- 1inch Fusion+ Whitepaper:[Need to fetch]
+- 1inch Fusion+ Whitepaper: https://1inch.io/assets/1inch-fusion-plus.pdf
 - 1inch GitHub: https://github.com/1inch
+- 1inch Cross-chain Swap Repository: https://github.com/1inch/cross-chain-swap
+- 1inch Cross-chain Resolver Example: https://github.com/1inch/cross-chain-resolver-example
+- 1inch Fusion Resolver Example: https://github.com/1inch/fusion-resolver-example
 - 1inch Limit Order Protocol: https://github.com/1inch/limit-order-protocol
 - 1inch APIs Documentation: https://docs.1inch.io/docs/aggregation-protocol/introduction
 

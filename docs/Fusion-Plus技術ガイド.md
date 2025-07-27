@@ -2,6 +2,7 @@
 
 ## 📺 ワークショップサマリー
 ソース: [1inch Cross-chain Swap Workshop by Tanner Moore](https://www.youtube.com/watch?v=W2xCf-TCnwc)
+[サンプルコード](https://github.com/1inch/cross-chain-resolver-example/blob/master/contracts/src/Resolver.sol)
 
 ## 🔧 1inch製品スイート概要
 
