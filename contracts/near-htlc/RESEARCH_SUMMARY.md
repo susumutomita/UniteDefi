@@ -2,21 +2,21 @@
 
 ## Executive Summary
 
-This document summarizes comprehensive research on implementing Hash Time Locked Contracts (HTLC) on NEAR Protocol for 1inch Fusion+ cross-chain swaps. 
+This document summarizes comprehensive research on implementing Hash Time Locked Contracts (HTLC) on NEAR Protocol for 1inch Fusion+ cross-chain swaps.
 
-**Key Conclusion**: NEAR requires a completely different implementation approach than Ethereum due to its non-EVM architecture, but it's fully capable of supporting the required HTLC functionality.
+Key Conclusion: NEAR requires a completely different implementation approach than Ethereum due to its non-EVM architecture, but it's fully capable of supporting the required HTLC functionality.
 
 ## 1. Smart Contract Development (Rust vs AssemblyScript)
 
 ### Recommendation: Use Rust
 
-**Reasoning:**
+Reasoning:
 - Financial applications require maximum safety guarantees
 - Rust's memory safety and type system prevent critical bugs
 - More mature toolchain with better NEAR SDK support
 - NEAR itself is written in Rust
 
-**AssemblyScript Alternative:**
+AssemblyScript Alternative:
 - Only suitable for prototypes or non-financial use cases
 - Learning time: hours vs weeks for Rust
 - Limited safety guarantees
@@ -33,16 +33,16 @@ The codebase already contains a basic HTLC implementation with:
 
 ### Required Enhancements for 1inch Fusion+
 
-1. **Multiple Time Lock Periods**:
+1. Multiple Time Lock Periods:
    - Finality lock (beneficiary-only claim period)
    - Cancel time (resolver can cancel)
    - Public cancel time (anyone can cancel)
 
-2. **Safety Deposit Mechanism**:
+2. Safety Deposit Mechanism:
    - Additional deposit to incentivize proper resolution
    - Configurable beneficiary for safety deposit
 
-3. **NEP-141 Token Support**:
+3. NEP-141 Token Support:
    - Handle fungible tokens (NEAR's ERC-20 equivalent)
    - Batch operations for efficiency
 
@@ -94,9 +94,9 @@ Promise::new(recipient).transfer(amount)
 ## 6. Existing HTLC/Atomic Swap Implementations
 
 ### Research Findings
-- **Liquality**: Announced NEAR support but no public code found
-- **Rainbow Bridge**: Not suitable for atomic swaps (too slow)
-- **No Public Examples**: No open-source NEAR HTLC implementations found
+- Liquality: Announced NEAR support but no public code found
+- Rainbow Bridge: Not suitable for atomic swaps (too slow)
+- No Public Examples: No open-source NEAR HTLC implementations found
 
 ### Implications
 - We're implementing one of the first public NEAR HTLCs
@@ -106,9 +106,9 @@ Promise::new(recipient).transfer(amount)
 ## 7. Timeout and Refund Handling
 
 ### NEAR-Specific Considerations
-1. **No Automatic Rollback**: Must manually revert state
-2. **Promise Results**: Check in callbacks
-3. **Refund Pattern**:
+1. No Automatic Rollback: Must manually revert state
+2. Promise Results: Check in callbacks
+3. Refund Pattern:
    ```rust
    match env::promise_result(0) {
        PromiseResult::Failed => {
@@ -141,21 +141,21 @@ near deploy htlc.testnet ./target/near/htlc.wasm
 ## 9. Cross-Chain Integration Patterns
 
 ### Option 1: Direct HTLC (Recommended)
-**Pros:**
+Pros:
 - Lower latency (minutes vs hours)
 - Lower cost ($1-2 vs $10-60)
 - Full control over timing
 
-**Cons:**
+Cons:
 - Requires custom implementation
 - Need coordination service
 
 ### Option 2: Rainbow Bridge
-**Pros:**
+Pros:
 - Existing infrastructure
 - Battle-tested
 
-**Cons:**
+Cons:
 - High latency (6min/16hrs)
 - High cost
 - Not suitable for time-sensitive swaps
@@ -179,33 +179,33 @@ Rainbow Bridge's architecture (lock-and-mint) differs fundamentally from HTLC at
 ## Implementation Status
 
 ### Completed
-✅ Basic HTLC contract structure  
-✅ Enhanced Fusion+ compatible contract  
-✅ Deployment scripts  
-✅ JavaScript coordination example  
-✅ Comprehensive documentation  
+✅ Basic HTLC contract structure
+✅ Enhanced Fusion+ compatible contract
+✅ Deployment scripts
+✅ JavaScript coordination example
+✅ Comprehensive documentation
 
 ### Next Steps
-1. **Testing**: Unit and integration tests
-2. **Security Audit**: Review by NEAR experts
-3. **Relayer Service**: Build coordination layer
-4. **Mainnet Deployment**: After thorough testing
+1. Testing: Unit and integration tests
+2. Security Audit: Review by NEAR experts
+3. Relayer Service: Build coordination layer
+4. Mainnet Deployment: After thorough testing
 
 ## Key Takeaways
 
-1. **NEAR is Non-EVM**: Requires complete reimplementation, not porting
-2. **Asynchronous by Design**: Must handle callbacks and manual rollbacks
-3. **Storage Economics**: Factor in staking requirements
-4. **Limited Examples**: We're pioneering NEAR HTLC implementations
-5. **Promising Platform**: NEAR's features (access keys, low fees) make it ideal for cross-chain swaps
+1. NEAR is Non-EVM: Requires complete reimplementation, not porting
+2. Asynchronous by Design: Must handle callbacks and manual rollbacks
+3. Storage Economics: Factor in staking requirements
+4. Limited Examples: We're pioneering NEAR HTLC implementations
+5. Promising Platform: NEAR's features (access keys, low fees) make it ideal for cross-chain swaps
 
 ## Recommendations
 
-1. **Use Rust**: Only viable option for production financial contracts
-2. **Implement Direct HTLC**: Don't rely on Rainbow Bridge for atomic swaps
-3. **Plan for Async**: Design with callbacks and error handling from start
-4. **Consider Storage**: Optimize data structures for cost efficiency
-5. **Test Thoroughly**: NEAR's async nature requires comprehensive testing
+1. Use Rust: Only viable option for production financial contracts
+2. Implement Direct HTLC: Don't rely on Rainbow Bridge for atomic swaps
+3. Plan for Async: Design with callbacks and error handling from start
+4. Consider Storage: Optimize data structures for cost efficiency
+5. Test Thoroughly: NEAR's async nature requires comprehensive testing
 
 ## Resources
 

@@ -6,27 +6,27 @@ This repository contains a NEAR Protocol implementation of Hash Time Locked Cont
 
 ### NEAR Protocol Specifics
 
-1. **No Solidity Support**: NEAR uses WebAssembly runtime, not EVM. Smart contracts must be written in Rust or AssemblyScript.
+1. No Solidity Support: NEAR uses WebAssembly runtime, not EVM. Smart contracts must be written in Rust or AssemblyScript.
 
-2. **Asynchronous Execution**: Cross-contract calls use Promises and execute asynchronously, requiring callback patterns for error handling.
+2. Asynchronous Execution: Cross-contract calls use Promises and execute asynchronously, requiring callback patterns for error handling.
 
-3. **Account Model**: 
+3. Account Model:
    - Human-readable account IDs (e.g., alice.near)
    - Multiple access keys with different permissions
    - Storage requires staking (1 NEAR per 100KB)
 
-4. **No Automatic Rollback**: Failed transactions don't automatically revert state. Manual rollback logic is required.
+4. No Automatic Rollback: Failed transactions don't automatically revert state. Manual rollback logic is required.
 
-5. **Gas Limitations**: Maximum 300 TGas per transaction (~300ms compute time).
+5. Gas Limitations: Maximum 300 TGas per transaction (~300ms compute time).
 
 ### Cross-Chain Integration Options
 
-1. **Direct HTLC Implementation** (Recommended)
+1. Direct HTLC Implementation (Recommended)
    - Implement matching HTLCs on NEAR and Ethereum
    - Use relayer service for coordination
    - Lower latency and cost
 
-2. **Rainbow Bridge**
+2. Rainbow Bridge
    - Existing trustless bridge between NEAR and Ethereum
    - Higher latency (6 min ETH→NEAR, 16 hrs NEAR→ETH)
    - Higher cost (~$10-60 per transfer)
@@ -111,9 +111,9 @@ near call fusion-htlc.testnet claim '{
 
 ### Time Locks (1inch Fusion+ Compatible)
 
-1. **Finality Period**: Only beneficiary can claim with secret
-2. **Cancel Period**: Resolver can cancel after finality
-3. **Public Cancel Period**: Anyone can cancel (cleanup)
+1. Finality Period: Only beneficiary can claim with secret
+2. Cancel Period: Resolver can cancel after finality
+3. Public Cancel Period: Anyone can cancel (cleanup)
 
 ### Safety Deposits
 
@@ -129,10 +129,10 @@ near call fusion-htlc.testnet claim '{
 
 ## 🔐 Security Considerations
 
-1. **Storage Attacks**: Require storage deposits from users
-2. **Gas Exhaustion**: Split complex operations
-3. **Callback Security**: Use `#[private]` for callbacks
-4. **State Management**: Update state before external calls
+1. Storage Attacks: Require storage deposits from users
+2. Gas Exhaustion: Split complex operations
+3. Callback Security: Use `#[private]` for callbacks
+4. State Management: Update state before external calls
 
 ## 📊 Comparison with Ethereum Implementation
 
@@ -147,16 +147,16 @@ near call fusion-htlc.testnet claim '{
 
 ## 🛠 Development Tools
 
-- **NEAR Explorer**: https://explorer.testnet.near.org/
-- **NEAR Wallet**: https://wallet.testnet.near.org/
-- **Documentation**: https://docs.near.org/
+- NEAR Explorer: https://explorer.testnet.near.org/
+- NEAR Wallet: https://wallet.testnet.near.org/
+- Documentation: https://docs.near.org/
 
 ## 📝 Next Steps
 
-1. **Testing**: Comprehensive unit and integration tests
-2. **Audit**: Security review of HTLC implementation
-3. **Relayer**: Build coordination service for cross-chain swaps
-4. **Mainnet**: Deploy after thorough testing
+1. Testing: Comprehensive unit and integration tests
+2. Audit: Security review of HTLC implementation
+3. Relayer: Build coordination service for cross-chain swaps
+4. Mainnet: Deploy after thorough testing
 
 ## 📚 Additional Resources
 
