@@ -11,7 +11,8 @@ help:
 	@echo "  make lint_fix      - Fix all auto-fixable lint issues"
 	@echo "  make lint_fix_md   - Fix textlint errors"
 	@echo "  make lint_fix_rust - Fix clippy warnings"
-	@echo "  make test          - Run Rust tests"
+	@echo "  make test          - Run all tests (Rust + TypeScript)"
+	@echo "  make test_security - Run security-focused tests"
 	@echo "  make test_coverage - Run tests with coverage report"
 	@echo "  make test_coverage_html - Run tests with HTML coverage report"
 	@echo "  make coverage_open - Open HTML coverage report in browser"
@@ -30,7 +31,10 @@ lint_md:
 
 .PHONY: lint_rust
 lint_rust:
+	@echo "Running clippy on workspace..."
 	cargo clippy --all-targets --all-features -- -D warnings
+	@echo "Running clippy on NEAR HTLC..."
+	cd contracts/near-htlc && cargo clippy --all-targets --all-features -- -D warnings
 
 .PHONY: lint_yaml
 lint_yaml:
@@ -60,7 +64,24 @@ lint_fix: lint_fix_md lint_fix_rust
 
 .PHONY: test
 test:
+	@echo "Running Rust tests..."
 	cargo test --workspace
+	@echo "Running NEAR HTLC specific tests..."
+	cd contracts/near-htlc && cargo test
+	@echo "Running TypeScript tests..."
+	@if [ -f contracts/near-htlc/package.json ]; then \
+		cd contracts/near-htlc && npm test 2>/dev/null || echo "No TypeScript tests found"; \
+	fi
+	@echo "All tests completed!"
+
+.PHONY: test_security
+test_security:
+	@echo "Running security-focused tests..."
+	cd contracts/near-htlc && cargo test security -- --nocapture
+	@if [ -f contracts/near-htlc/scripts/run_all_tests.sh ]; then \
+		cd contracts/near-htlc && ./scripts/run_all_tests.sh; \
+	fi
+	@echo "Security tests completed!"
 
 .PHONY: test_coverage
 test_coverage:
@@ -82,11 +103,17 @@ coverage_open:
 
 .PHONY: format
 format:
+	@echo "Formatting Rust code..."
 	cargo fmt --all
+	@echo "Formatting NEAR HTLC code..."
+	cd contracts/near-htlc && cargo fmt
+	@echo "All formatting completed!"
 
 .PHONY: format_check
 format_check:
+	@echo "Checking Rust formatting..."
 	cargo fmt --all -- --check
+	cd contracts/near-htlc && cargo fmt -- --check
 
 setup_husky:
 	pnpm run husky

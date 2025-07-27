@@ -1,6 +1,8 @@
 [workspace]
-members = [ "fusion-cli",
+members = [ 
+    "fusion-cli",
     "fusion-core",
+    "contracts/near-htlc",
 ]
 resolver = "2"
 
