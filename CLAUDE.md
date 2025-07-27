@@ -233,3 +233,8 @@ Create specialized steering documents for:
 - Always Included - Loaded in every interaction (default)
 - Conditional - Loaded for specific file patterns (e.g., `".test.js"`)
 - Manual - Loaded on-demand with `#filename` reference
+
+## Security Guidelines
+- NEVER use the `rm` command as it can damage the environment
+- If file deletion is necessary, ask the user to do it manually
+- Use safe file operations through provided tools (Write, Edit, MultiEdit)
