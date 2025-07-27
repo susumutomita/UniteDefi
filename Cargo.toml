@@ -9,8 +9,8 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Fusion Plus Team"]
 license = "MIT"
-repository = "https://github.com/UniteDefi/fusion-plus"
-homepage = "https://github.com/UniteDefi/fusion-plus"
+repository = "https://github.com/susumutomita/UniteDefi"
+homepage = "https://github.com/susumutomita/UniteDefi"
 readme = "README.md"
 
 [workspace.dependencies]

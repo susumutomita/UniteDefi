@@ -1,0 +1,4 @@
+# Clippy設定
+# uninlined_format_args警告を無効化
+# CIとローカル環境の差異を吸収
+allow-dbg-in-tests = true
