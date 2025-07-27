@@ -19,7 +19,7 @@ class TestableOrchestrator {
             nearAccountId: string;
             nearPrivateKey: string;
         }
-    ) {}
+    ) { }
 
     // Test 1: Binary Data Handling in Hash Conversion
     convertHashForNear(ethHash: string): string {
@@ -33,14 +33,14 @@ class TestableOrchestrator {
         // Generate cryptographically secure random bytes
         const secretBytes = crypto.randomBytes(32);
         const secret = secretBytes.toString('hex');
-        
+
         // Ethereum uses keccak256 for consistency with their ecosystem
         const ethHash = ethers.keccak256(secretBytes);
-        
+
         // NEAR uses SHA256 and base58 encoding
         const sha256Hash = crypto.createHash('sha256').update(secretBytes).digest();
         const nearHash = bs58.encode(sha256Hash);
-        
+
         return { secret, ethHash, nearHash };
     }
 
@@ -60,7 +60,7 @@ class TestableOrchestrator {
         // NEAR uses nanoseconds - ensure no overflow
         const NANO_PER_SEC = 1_000_000_000n;
         const nowNano = BigInt(nowSeconds) * NANO_PER_SEC;
-        
+
         // Check for potential overflow before calculation
         const maxSafeNano = BigInt(Number.MAX_SAFE_INTEGER);
         if (nowNano + (BigInt(publicCancel) * NANO_PER_SEC) > maxSafeNano) {
@@ -89,7 +89,7 @@ class TestableOrchestrator {
 
         const GAS_PER_BYTE = 1_000_000_000n; // 1 TGas per KB
         const dataSizeGas = BigInt(dataSize) * GAS_PER_BYTE / 1024n;
-        
+
         const baseGas = BASE_GAS[operation as keyof typeof BASE_GAS] || 50_000_000_000_000n;
         return baseGas + dataSizeGas;
     }
@@ -100,12 +100,12 @@ class TestableOrchestrator {
         for (let i = 0; i < escrowIds.length; i += batchSize) {
             const batch = escrowIds.slice(i, i + batchSize);
             const gas = this.calculateDynamicGas('batch_cancel', batch.length * 100);
-            
+
             // Add delay between batches to prevent rate limiting
             if (i > 0) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
-            
+
             console.log(`Processing batch ${i / batchSize + 1} with gas: ${gas}`);
             // Actual contract call would go here
         }
@@ -118,7 +118,7 @@ class TestableOrchestrator {
         initialDelay: number = 1000
     ): Promise<T> {
         let lastError: Error | null = null;
-        
+
         for (let i = 0; i < maxRetries; i++) {
             try {
                 return await operation();
@@ -129,7 +129,7 @@ class TestableOrchestrator {
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
-        
+
         throw lastError || new Error('Operation failed after retries');
     }
 
@@ -139,29 +139,29 @@ class TestableOrchestrator {
         if (BigInt(params.amount) <= 0n) {
             throw new Error('Amount must be positive');
         }
-        
+
         // Time validation
         if (params.finality_period >= params.cancel_period) {
             throw new Error('Finality period must be less than cancel period');
         }
-        
+
         if (params.cancel_period > params.public_cancel_period) {
             throw new Error('Cancel period must not exceed public cancel period');
         }
-        
+
         // Prevent timestamp overflow
         const now = Math.floor(Date.now() / 1000);
         const maxPeriod = (Number.MAX_SAFE_INTEGER / 1_000_000_000) - now;
-        
+
         if (params.public_cancel_period > maxPeriod) {
             throw new Error('Time period would cause timestamp overflow');
         }
-        
+
         // Hash validation
         if (!params.secret_hash || params.secret_hash.length === 0) {
             throw new Error('Secret hash is required');
         }
-        
+
         // Validate base58 encoding for NEAR
         try {
             const decoded = bs58.decode(params.secret_hash);
@@ -198,10 +198,10 @@ describe('NEAR HTLC Orchestrator Security Tests', () => {
 
             for (const ethHash of testCases) {
                 const nearHash = orchestrator.convertHashForNear(ethHash);
-                
+
                 // Verify it's valid base58
                 expect(() => bs58.decode(nearHash)).not.toThrow();
-                
+
                 // Verify round trip
                 const decoded = bs58.decode(nearHash);
                 const reEncoded = '0x' + Buffer.from(decoded).toString('hex');
@@ -211,22 +211,22 @@ describe('NEAR HTLC Orchestrator Security Tests', () => {
 
         test('should generate proper secrets and hashes', () => {
             const { secret, ethHash, nearHash } = orchestrator.generateSecretAndHash();
-            
+
             // Secret should be 64 hex chars (32 bytes)
             expect(secret).toMatch(/^[0-9a-f]{64}$/);
-            
+
             // Ethereum hash should be 66 chars (0x + 64)
             expect(ethHash).toMatch(/^0x[0-9a-f]{64}$/);
-            
+
             // NEAR hash should be valid base58
             expect(() => bs58.decode(nearHash)).not.toThrow();
             expect(bs58.decode(nearHash).length).toBe(32);
-            
+
             // Verify we can recreate the hashes
             const secretBytes = Buffer.from(secret, 'hex');
             const ethHashRecreated = ethers.keccak256(secretBytes);
             expect(ethHashRecreated).toBe(ethHash);
-            
+
             const sha256Recreated = crypto.createHash('sha256').update(secretBytes).digest();
             const nearHashRecreated = bs58.encode(sha256Recreated);
             expect(nearHashRecreated).toBe(nearHash);
@@ -237,15 +237,15 @@ describe('NEAR HTLC Orchestrator Security Tests', () => {
         test('should handle timestamp conversion without overflow', () => {
             const now = Math.floor(Date.now() / 1000);
             const timeouts = orchestrator.calculateTimeouts(now);
-            
+
             // Verify all values are positive
             expect(timeouts.finality).toBeGreaterThan(0);
             expect(timeouts.nearFinality).toBeGreaterThan(0n);
-            
+
             // Verify ordering
             expect(timeouts.nearFinality).toBeLessThan(timeouts.nearCancel);
             expect(timeouts.nearCancel).toBeLessThanOrEqual(timeouts.nearPublicCancel);
-            
+
             // Verify nanosecond conversion
             const expectedFinality = BigInt(now) * 1_000_000_000n + BigInt(timeouts.finality) * 1_000_000_000n;
             expect(timeouts.nearFinality).toBe(expectedFinality);
@@ -253,7 +253,7 @@ describe('NEAR HTLC Orchestrator Security Tests', () => {
 
         test('should detect timestamp overflow', () => {
             const nearMaxTime = Number.MAX_SAFE_INTEGER / 1_000_000_000;
-            
+
             expect(() => {
                 orchestrator.calculateTimeouts(nearMaxTime);
             }).toThrow('Timestamp overflow detected');
@@ -265,10 +265,10 @@ describe('NEAR HTLC Orchestrator Security Tests', () => {
             // Test basic operations
             const createGas = orchestrator.calculateDynamicGas('create_escrow', 0);
             const claimGas = orchestrator.calculateDynamicGas('claim', 0);
-            
+
             expect(createGas).toBe(50_000_000_000_000n);
             expect(claimGas).toBe(75_000_000_000_000n);
-            
+
             // Test with data size
             const largeDataGas = orchestrator.calculateDynamicGas('create_escrow', 10240); // 10KB
             expect(largeDataGas).toBe(50_000_000_000_000n + 10_000_000_000n);
@@ -278,16 +278,16 @@ describe('NEAR HTLC Orchestrator Security Tests', () => {
     describe('Batch Operations Safety', () => {
         test('should process batch cancellations safely', async () => {
             const escrowIds = Array.from({ length: 25 }, (_, i) => `escrow_${i}`);
-            
+
             const consoleSpy = jest.spyOn(console, 'log');
             await orchestrator.safeBatchCancel(escrowIds, 10);
-            
+
             // Should process in 3 batches
             expect(consoleSpy).toHaveBeenCalledTimes(3);
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('batch 1'));
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('batch 2'));
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('batch 3'));
-            
+
             consoleSpy.mockRestore();
         });
     });
@@ -304,7 +304,7 @@ describe('NEAR HTLC Orchestrator Security Tests', () => {
             });
 
             const result = await orchestrator.retryWithBackoff(operation, 3, 100);
-            
+
             expect(result).toBe('success');
             expect(operation).toHaveBeenCalledTimes(3);
         });
@@ -315,7 +315,7 @@ describe('NEAR HTLC Orchestrator Security Tests', () => {
             await expect(
                 orchestrator.retryWithBackoff(operation, 2, 100)
             ).rejects.toThrow('Persistent failure');
-            
+
             expect(operation).toHaveBeenCalledTimes(2);
         });
     });
@@ -391,19 +391,19 @@ describe('NEAR HTLC Orchestrator Security Tests', () => {
         test('should maintain hash consistency across chains', () => {
             const secret = crypto.randomBytes(32);
             const secretHex = secret.toString('hex');
-            
+
             // Ethereum style
             const ethHash = ethers.keccak256(secret);
-            
+
             // NEAR style
             const sha256Hash = crypto.createHash('sha256').update(secret).digest();
             const nearHash = bs58.encode(sha256Hash);
-            
+
             // Both should be deterministic
             const ethHash2 = ethers.keccak256(Buffer.from(secretHex, 'hex'));
             const sha256Hash2 = crypto.createHash('sha256').update(Buffer.from(secretHex, 'hex')).digest();
             const nearHash2 = bs58.encode(sha256Hash2);
-            
+
             expect(ethHash).toBe(ethHash2);
             expect(nearHash).toBe(nearHash2);
         });

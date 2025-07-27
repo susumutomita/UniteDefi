@@ -13,13 +13,17 @@ type Timestamp = u64;
 // Gas constants - Made configurable for future NEAR upgrades
 const BASE_GAS_FOR_FT_TRANSFER: Gas = Gas::from_tgas(20);
 const BASE_GAS_FOR_CALLBACK: Gas = Gas::from_tgas(10);
-const GAS_PER_BATCH_ITEM: Gas = Gas::from_tgas(5);
-const NO_DEPOSIT: Balance = 0;
+// Removed unused constants - GAS_PER_BATCH_ITEM and NO_DEPOSIT
 const ONE_YOCTO: Balance = 1;
 
 // Time constants for overflow protection
 const MAX_TIME_PERIOD_SECONDS: u64 = 10 * 365 * 24 * 60 * 60; // 10 years
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
+
+// Storage limits to prevent DoS attacks
+const MAX_TOTAL_ESCROWS: u64 = 10_000; // Maximum number of total escrows
+const MAX_ESCROWS_PER_ACCOUNT: u64 = 100; // Maximum number of active escrows per account
+const MAX_ESCROW_AMOUNT: Balance = 1_000_000 * 10u128.pow(24); // 1M NEAR max per escrow
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -27,6 +31,7 @@ pub struct FusionHTLC {
     pub escrows: UnorderedMap<String, FusionEscrow>,
     pub escrow_counter: u64,
     pub owner: AccountId,
+    pub active_escrows_per_account: UnorderedMap<AccountId, u64>, // Track active escrows per account
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone)]
@@ -86,10 +91,12 @@ pub struct CreateEscrowParams {
 impl FusionHTLC {
     #[init]
     pub fn new(owner: AccountId) -> Self {
+        assert!(!env::state_exists(), "Already initialized");
         Self {
             escrows: UnorderedMap::new(b"e"),
             escrow_counter: 0,
             owner,
+            active_escrows_per_account: UnorderedMap::new(b"a"),
         }
     }
 
@@ -99,6 +106,31 @@ impl FusionHTLC {
         let resolver = env::predecessor_account_id();
         let deposit = env::attached_deposit();
         let now = env::block_timestamp();
+
+        // Check storage limits to prevent DoS
+        assert!(
+            self.escrow_counter < MAX_TOTAL_ESCROWS,
+            "Maximum total escrows limit reached"
+        );
+
+        // Check per-account limits
+        let active_count = self.active_escrows_per_account.get(&resolver).unwrap_or(0);
+        assert!(
+            active_count < MAX_ESCROWS_PER_ACCOUNT,
+            "Maximum escrows per account limit reached"
+        );
+
+        // Check escrow amount limits
+        let amount: Balance = params.amount.into();
+        let safety_deposit: Balance = params.safety_deposit.into();
+        assert!(
+            amount <= MAX_ESCROW_AMOUNT,
+            "Escrow amount exceeds maximum limit"
+        );
+        assert!(
+            safety_deposit <= MAX_ESCROW_AMOUNT,
+            "Safety deposit exceeds maximum limit"
+        );
 
         // Validate time periods to prevent overflow
         assert!(
@@ -135,7 +167,10 @@ impl FusionHTLC {
 
         // For NEAR transfers, ensure sufficient deposit
         if params.token_id.is_none() {
-            assert!(deposit >= NearToken::from_yoctonear(total_amount), "Insufficient NEAR deposit");
+            assert!(
+                deposit >= NearToken::from_yoctonear(total_amount),
+                "Insufficient NEAR deposit"
+            );
         }
 
         let escrow_id = format!("fusion_{}", self.escrow_counter);
@@ -159,6 +194,10 @@ impl FusionHTLC {
         };
 
         self.escrows.insert(&escrow_id, &escrow);
+
+        // Update active escrow count for resolver
+        self.active_escrows_per_account
+            .insert(&resolver, &(active_count + 1));
 
         env::log_str(&format!(
             "Fusion escrow created: {} by {} for {}, amount: {}, safety: {}",
@@ -195,6 +234,18 @@ impl FusionHTLC {
         escrow.resolution_time = Some(now);
         self.escrows.insert(&escrow_id, &escrow);
 
+        // Decrease active escrow count for resolver
+        let active_count = self
+            .active_escrows_per_account
+            .get(&escrow.resolver)
+            .unwrap_or(1);
+        if active_count > 1 {
+            self.active_escrows_per_account
+                .insert(&escrow.resolver, &(active_count - 1));
+        } else {
+            self.active_escrows_per_account.remove(&escrow.resolver);
+        }
+
         // Store secret for cross-chain verification
         env::log_str(&format!("Secret revealed: {}", secret));
 
@@ -227,6 +278,18 @@ impl FusionHTLC {
         escrow.resolution_time = Some(now);
         self.escrows.insert(&escrow_id, &escrow);
 
+        // Decrease active escrow count for resolver
+        let active_count = self
+            .active_escrows_per_account
+            .get(&escrow.resolver)
+            .unwrap_or(1);
+        if active_count > 1 {
+            self.active_escrows_per_account
+                .insert(&escrow.resolver, &(active_count - 1));
+        } else {
+            self.active_escrows_per_account.remove(&escrow.resolver);
+        }
+
         // Execute refund
         self.execute_cancel_refund(escrow_id, escrow)
     }
@@ -244,10 +307,10 @@ impl FusionHTLC {
         let start = from_index as usize;
         let end = std::cmp::min(start + limit as usize, keys.len());
 
-        for i in start..end {
-            if let Some(escrow) = self.escrows.get(&keys[i]) {
+        for key in keys.iter().skip(start).take(end - start) {
+            if let Some(escrow) = self.escrows.get(key) {
                 if escrow.state == EscrowState::Active {
-                    result.push((keys[i].clone(), escrow));
+                    result.push((key.clone(), escrow));
                 }
             }
         }
@@ -263,16 +326,12 @@ impl FusionHTLC {
         base_time.saturating_add(nanoseconds)
     }
 
-    /// Calculate dynamic gas based on operation complexity
-    fn calculate_gas(&self, base_gas: Gas, multiplier: u64) -> Gas {
-        let additional_gas = Gas::from_tgas(5 * multiplier);
-        Gas::from_gas(base_gas.as_gas() + additional_gas.as_gas())
-    }
+    // Removed unused calculate_gas method
 
     fn hash_secret(&self, secret: &str) -> String {
         // Decode hex string to bytes
         let secret_bytes = hex::decode(secret).expect("Invalid hex secret");
-        
+
         let mut hasher = Sha256::new();
         hasher.update(&secret_bytes);
         let result = hasher.finalize();
@@ -280,7 +339,7 @@ impl FusionHTLC {
     }
 
     fn execute_claim_transfers(&self, escrow_id: String, escrow: FusionEscrow) -> Promise {
-        let mut promise = Promise::new(env::current_account_id());
+        let mut promise: Promise;
 
         if let Some(token_id) = escrow.token_id {
             // NEP-141 token transfers
@@ -316,15 +375,18 @@ impl FusionHTLC {
             }
         } else {
             // NEAR transfers
-            promise = Promise::new(escrow.beneficiary.clone()).transfer(NearToken::from_yoctonear(escrow.amount));
+            promise = Promise::new(escrow.beneficiary.clone())
+                .transfer(NearToken::from_yoctonear(escrow.amount));
 
             if escrow.safety_deposit > 0 {
                 let safety_recipient = escrow
                     .safety_deposit_beneficiary
                     .unwrap_or(escrow.resolver.clone());
 
-                promise =
-                    promise.then(Promise::new(safety_recipient).transfer(NearToken::from_yoctonear(escrow.safety_deposit)));
+                promise = promise.then(
+                    Promise::new(safety_recipient)
+                        .transfer(NearToken::from_yoctonear(escrow.safety_deposit)),
+                );
             }
         }
 
@@ -398,28 +460,28 @@ impl FusionHTLC {
     pub fn batch_cancel(&mut self, escrow_ids: Vec<String>) -> Vec<String> {
         let mut cancelled_ids = Vec::new();
         let mut processed_ids = std::collections::HashSet::<String>::new();
-        
+
         for escrow_id in escrow_ids {
             // Skip duplicates to prevent reentrancy
             if processed_ids.contains(&escrow_id) {
                 continue;
             }
             processed_ids.insert(escrow_id.clone());
-            
+
             if let Some(escrow) = self.escrows.get(&escrow_id) {
                 if escrow.state == EscrowState::Active
                     && env::block_timestamp() >= escrow.public_cancel_time
                 {
                     // Store state before external call
                     let escrow_id_copy = escrow_id.clone();
-                    
+
                     // Use promise batching for efficiency
                     self.cancel(escrow_id);
                     cancelled_ids.push(escrow_id_copy);
                 }
             }
         }
-        
+
         cancelled_ids
     }
 
@@ -474,7 +536,7 @@ mod tests {
     fn get_context(predecessor: AccountId, deposit: Balance, timestamp: Timestamp) -> VMContext {
         VMContextBuilder::new()
             .predecessor_account_id(predecessor)
-            .attached_deposit(deposit)
+            .attached_deposit(NearToken::from_yoctonear(deposit))
             .block_timestamp(timestamp)
             .build()
     }
@@ -527,7 +589,7 @@ mod tests {
         // Test with actual binary data secret
         let secret_bytes = vec![0xde, 0xad, 0xbe, 0xef, 0x01, 0x23, 0x45, 0x67];
         let secret_hex = hex::encode(&secret_bytes);
-        
+
         // Create hash from binary data
         let mut hasher = Sha256::new();
         hasher.update(&secret_bytes);
@@ -549,11 +611,11 @@ mod tests {
         let escrow_id = contract.create_escrow(params);
 
         // Switch to beneficiary context and try to claim
-        testing_env!(get_context(accounts(1), 0, 1800_000_000_000)); // 30 minutes later
-        
+        testing_env!(get_context(accounts(1), 0, 1_800_000_000_000)); // 30 minutes later
+
         // This should succeed with correct secret
         contract.claim(escrow_id.clone(), secret_hex.clone());
-        
+
         let escrow = contract.get_escrow(escrow_id).unwrap();
         assert_eq!(escrow.state, EscrowState::Claimed);
     }
@@ -565,7 +627,7 @@ mod tests {
         testing_env!(context);
 
         let mut contract = FusionHTLC::new(accounts(0));
-        
+
         let params = CreateEscrowParams {
             beneficiary: accounts(1),
             secret_hash: create_valid_secret_hash(),
@@ -579,9 +641,9 @@ mod tests {
         };
 
         let escrow_id = contract.create_escrow(params);
-        
-        testing_env!(get_context(accounts(1), 0, 1800_000_000_000));
-        
+
+        testing_env!(get_context(accounts(1), 0, 1_800_000_000_000));
+
         // Try to claim with invalid hex
         contract.claim(escrow_id, "not_valid_hex_gg".to_string());
     }
@@ -612,9 +674,18 @@ mod tests {
         let escrow = contract.get_escrow(escrow_id).unwrap();
 
         // Check that timestamps are correctly converted to nanoseconds
-        assert_eq!(escrow.finality_time, start_time + (31_536_000 * 1_000_000_000));
-        assert_eq!(escrow.cancel_time, start_time + (63_072_000 * 1_000_000_000));
-        assert_eq!(escrow.public_cancel_time, start_time + (94_608_000 * 1_000_000_000));
+        assert_eq!(
+            escrow.finality_time,
+            start_time + (31_536_000 * 1_000_000_000)
+        );
+        assert_eq!(
+            escrow.cancel_time,
+            start_time + (63_072_000 * 1_000_000_000)
+        );
+        assert_eq!(
+            escrow.public_cancel_time,
+            start_time + (94_608_000 * 1_000_000_000)
+        );
     }
 
     #[test]
@@ -669,10 +740,10 @@ mod tests {
         // Test claiming right before finality time (should succeed)
         let just_before_finality = 3600 * 1_000_000_000 - 1;
         testing_env!(get_context(accounts(1), 0, just_before_finality));
-        
+
         let escrow_before = contract.get_escrow(escrow_id.clone()).unwrap();
         assert!(just_before_finality < escrow_before.finality_time);
-        
+
         contract.claim(escrow_id.clone(), hex::encode(secret.as_bytes()));
     }
 
@@ -703,7 +774,7 @@ mod tests {
         // Test claiming right after finality time (should fail)
         let just_after_finality = 3600 * 1_000_000_000 + 1;
         testing_env!(get_context(accounts(1), 0, just_after_finality));
-        
+
         contract.claim(escrow_id, hex::encode(secret.as_bytes()));
     }
 
@@ -717,7 +788,7 @@ mod tests {
         let mut escrow_ids = Vec::new();
 
         // Create multiple escrows
-        for i in 0..5 {
+        for _i in 0..5 {
             let params = CreateEscrowParams {
                 beneficiary: accounts(1),
                 secret_hash: create_valid_secret_hash(),
@@ -777,7 +848,7 @@ mod tests {
         testing_env!(VMContextBuilder::new()
             .predecessor_account_id(env::current_account_id())
             .build());
-        
+
         // Mock failed promise result
         testing_env!(VMContextBuilder::new()
             .predecessor_account_id(env::current_account_id())
@@ -794,13 +865,13 @@ mod tests {
         testing_env!(context);
 
         let mut contract = FusionHTLC::new(accounts(0));
-        let token_id = AccountId::new_unchecked("token.testnet".to_string());
+        let token_id: AccountId = "token.testnet".parse().unwrap();
 
         let params = CreateEscrowParams {
             beneficiary: accounts(1),
             secret_hash: create_valid_secret_hash(),
             token_id: Some(token_id.clone()),
-            amount: U128(1_000_000), // 1 USDC (6 decimals)
+            amount: U128(1_000_000),       // 1 USDC (6 decimals)
             safety_deposit: U128(100_000), // 0.1 USDC
             safety_deposit_beneficiary: Some(accounts(2)),
             finality_period: 3600,
@@ -811,7 +882,7 @@ mod tests {
         // Should accept token escrow with minimal NEAR deposit
         let escrow_id = contract.create_escrow(params);
         let escrow = contract.get_escrow(escrow_id).unwrap();
-        
+
         assert_eq!(escrow.token_id, Some(token_id));
         assert_eq!(escrow.amount, 1_000_000);
     }
@@ -883,8 +954,8 @@ mod tests {
 
         // Test various binary patterns
         let test_cases = vec![
-            vec![0x00, 0x00, 0x00, 0x00], // All zeros
-            vec![0xFF, 0xFF, 0xFF, 0xFF], // All ones
+            vec![0x00, 0x00, 0x00, 0x00],                         // All zeros
+            vec![0xFF, 0xFF, 0xFF, 0xFF],                         // All ones
             vec![0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0], // Mixed
             vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07], // Sequential
         ];
@@ -893,10 +964,10 @@ mod tests {
             let hex_secret = hex::encode(&test_data);
             let hash1 = contract.hash_secret(&hex_secret);
             let hash2 = contract.hash_secret(&hex_secret);
-            
+
             // Same input should produce same hash
             assert_eq!(hash1, hash2);
-            
+
             // Hash should be valid base58
             let decoded = bs58::decode(&hash1).into_vec().unwrap();
             assert_eq!(decoded.len(), 32); // SHA256 is 32 bytes
@@ -919,8 +990,8 @@ mod tests {
             amount: U128(1_000_000_000_000_000_000_000_000),
             safety_deposit: U128(0),
             safety_deposit_beneficiary: None,
-            finality_period: 7200,      // 2 hours
-            cancel_period: 3600,        // 1 hour (invalid - before finality)
+            finality_period: 7200,       // 2 hours
+            cancel_period: 3600,         // 1 hour (invalid - before finality)
             public_cancel_period: 10800, // 3 hours
         };
 
