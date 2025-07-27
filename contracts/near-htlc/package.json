@@ -1,0 +1,29 @@
+{
+  "name": "near-fusion-htlc",
+  "version": "1.0.0",
+  "description": "NEAR HTLC implementation for 1inch Fusion+ cross-chain swaps",
+  "main": "examples/cross_chain_swap.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "./scripts/deploy_testnet.sh",
+    "example": "node examples/cross_chain_swap.js"
+  },
+  "keywords": [
+    "near",
+    "htlc",
+    "atomic-swap",
+    "cross-chain",
+    "1inch",
+    "fusion"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "near-api-js": "^2.1.4",
+    "ethers": "^5.7.2",
+    "bs58": "^5.0.0"
+  },
+  "devDependencies": {
+    "near-cli": "^3.5.0"
+  }
+}
