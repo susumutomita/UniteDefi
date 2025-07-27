@@ -8,14 +8,14 @@ This guide provides comprehensive technical details for implementing Hash Time L
 
 ### Language Selection: Rust (Recommended)
 
-**Why Rust over AssemblyScript:**
+Why Rust over AssemblyScript:
 - Financial applications require maximum safety guarantees
 - Rust offers memory safety and zero-cost abstractions
 - More mature toolchain and ecosystem
 - NEAR itself is written in Rust
 - Better suited for production-grade financial contracts
 
-**AssemblyScript Alternative:**
+AssemblyScript Alternative:
 - Only suitable for non-financial use cases or prototypes
 - Easier learning curve (hours vs weeks)
 - Limited safety guarantees compared to Rust
@@ -52,8 +52,8 @@ cargo install cargo-near
 
 NEAR's multi-key architecture provides enhanced security:
 
-1. **Full Access Keys**: Complete account control
-2. **Function Call Keys**: Limited permissions
+1. Full Access Keys: Complete account control
+2. Function Call Keys: Limited permissions
    - Specific contract/methods
    - Gas allowance limits
    - Cannot transfer tokens
@@ -107,20 +107,20 @@ pub struct FusionEscrow {
     pub beneficiary: AccountId,        // Who can claim with secret
     pub amount: Balance,
     pub token_id: Option<AccountId>,
-    
+
     // Hash lock
     pub secret_hash: String,           // SHA256 hash
-    
+
     // Time locks (1inch Fusion+ specific)
     pub deployment_time: Timestamp,
     pub finality_lock: Timestamp,      // Before this: only beneficiary can claim
     pub cancel_time: Timestamp,        // After this: resolver can cancel
     pub public_cancel_time: Timestamp, // After this: anyone can cancel
-    
+
     // Safety deposit
     pub safety_deposit: Balance,
     pub safety_deposit_beneficiary: Option<AccountId>,
-    
+
     // State
     pub state: EscrowState,
     pub claimed_by: Option<AccountId>,
@@ -142,7 +142,7 @@ impl FusionEscrow {
             _ => false,
         }
     }
-    
+
     pub fn can_cancel(&self, canceller: &AccountId) -> bool {
         let now = env::block_timestamp();
         match self.state {
@@ -192,7 +192,7 @@ impl HTLCContract {
     pub fn claim_with_callback(&mut self, escrow_id: String, secret: String) {
         // Validate and update state
         let escrow = self.validate_claim(escrow_id.clone(), secret);
-        
+
         // Execute transfer with callback
         Promise::new(escrow.token_id.unwrap())
             .function_call(
@@ -209,7 +209,7 @@ impl HTLCContract {
                     .on_transfer_complete(escrow_id)
             );
     }
-    
+
     #[private]
     pub fn on_transfer_complete(&mut self, escrow_id: String) {
         match env::promise_result(0) {
@@ -267,17 +267,17 @@ NEAR doesn't automatically rollback state on failures:
 impl HTLCContract {
     pub fn handle_timeout(&mut self, escrow_id: String) {
         let escrow = self.escrows.get(&escrow_id).expect("Escrow not found");
-        
+
         // Check timeout conditions
         let now = env::block_timestamp();
         assert!(now >= escrow.timeout, "Not yet timed out");
         assert_eq!(escrow.state, EscrowState::Pending, "Invalid state");
-        
+
         // Update state first
         let mut escrow = escrow;
         escrow.state = EscrowState::Refunded;
         self.escrows.insert(&escrow_id, &escrow);
-        
+
         // Execute refund
         if let Some(token_id) = &escrow.token_id {
             // NEP-141 token refund
@@ -359,16 +359,16 @@ near call htlc.testnet claim '{
 
 ### NEAR-Specific Risks
 
-1. **Storage Attacks**: Malicious users can inflate storage costs
+1. Storage Attacks: Malicious users can inflate storage costs
    - Solution: Require storage deposit from users
-   
-2. **Gas Exhaustion**: Complex operations may exceed 300 TGas
+
+2. Gas Exhaustion: Complex operations may exceed 300 TGas
    - Solution: Split operations across multiple transactions
-   
-3. **Callback Manipulation**: Ensure callbacks are private
+
+3. Callback Manipulation: Ensure callbacks are private
    - Solution: Use `#[private]` attribute
 
-4. **Front-running**: NEAR has deterministic ordering
+4. Front-running: NEAR has deterministic ordering
    - Solution: Use commit-reveal patterns for sensitive operations
 
 ### Best Practices
@@ -392,7 +392,7 @@ pub fn claim(&mut self, escrow_id: String, secret: String) {
     assert_eq!(escrow.state, EscrowState::Pending);
     escrow.state = EscrowState::Claimed;
     self.escrows.insert(&escrow_id, &escrow);
-    
+
     // Then make external calls
     Promise::new(escrow.beneficiary).transfer(escrow.amount);
 }
