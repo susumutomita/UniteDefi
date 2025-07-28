@@ -1,4 +1,4 @@
-# Fusion+ Universal Rust Gateway
+# UniteSwap
 
 [![CI](https://github.com/susumutomita/UniteDefi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/susumutomita/UniteDefi/actions/workflows/ci.yml)
 ![GitHub last commit (by committer)](https://img.shields.io/github/last-commit/susumutomita/UniteDefi)
@@ -15,7 +15,7 @@ This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethe
 
 ## 🎯 Project Overview
 
-**Fusion+ Universal Rust Gateway** provides a unified Rust-based CLI tool that implements the Hash Time Lock Contract (HTLC) pattern for secure cross-chain token swaps. Our implementation preserves the security guarantees of 1inch Fusion+ while extending support to multiple non-EVM chains through a modular, extensible architecture.
+**UniteSwap** provides a unified Rust-based CLI tool that implements the Hash Time Lock Contract (HTLC) pattern for secure cross-chain token swaps. Our implementation preserves the security guarantees of 1inch Fusion+ while extending support to multiple non-EVM chains through a modular, extensible architecture.
 
 ### Key Features
 - ✅ Bidirectional swaps (EVM ↔ non-EVM)
@@ -165,6 +165,18 @@ cargo test --package stellar-htlc
 | Avg Swap Time | 15s | 2s | 6s | 5s |
 | Gas Cost | $5-20 | <$0.01 | <$0.01 | <$0.01 |
 | Finality | 12 blocks | 2 blocks | 1 block | 1 ledger |
+
+## 📚 Documentation
+
+- [Quick Start Guide](docs/QUICK_START.md) - 30分で始めるクロスチェーンスワップ
+- [Implementation Guide](docs/CROSS_CHAIN_IMPLEMENTATION_GUIDE.md) - 詳細な実装ガイド
+- [Implementation Roadmap](docs/IMPLEMENTATION_ROADMAP.md) - ETHGlobal Unite向けロードマップ
+- [Command Reference](docs/COMMANDS.md) - よく使うコマンド集
+
+### 📖 Additional Docs
+- [NEAR HTLC Documentation](contracts/near-htlc/README.md)
+- [Security Test Summary](contracts/near-htlc/SECURITY_TEST_SUMMARY.md)
+- [Research Summary](contracts/near-htlc/RESEARCH_SUMMARY.md)
 
 ## 🏗️ Project Structure
 ```
