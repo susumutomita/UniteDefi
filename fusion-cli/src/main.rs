@@ -6,7 +6,7 @@ use std::time::Duration;
 
 #[derive(Parser)]
 #[command(name = "fusion-cli")]
-#[command(about = "Fusion+ Universal Rust Gateway CLI")]
+#[command(about = "UniteSwap CLI")]
 #[command(version = "0.1.0")]
 struct Cli {
     #[command(subcommand)]

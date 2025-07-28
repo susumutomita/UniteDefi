@@ -1,7 +1,7 @@
 # Product Overview
 
 ## Product Description
-Fusion+ Universal Rust Gateway is a high-performance Rust CLI implementation that extends the 1inch Fusion+ protocol to enable trustless atomic swaps between Ethereum (EVM) and Rust-native non-EVM chains. Built for ETHGlobal Unite hackathon, it provides a unified gateway for cross-chain token swaps while preserving all security guarantees of the original Fusion+ protocol.
+UniteSwap is a high-performance Rust CLI implementation that extends the 1inch Fusion+ protocol to enable trustless atomic swaps between Ethereum (EVM) and Rust-native non-EVM chains. Built for ETHGlobal Unite hackathon, it provides a unified gateway for cross-chain token swaps while preserving all security guarantees of the original Fusion+ protocol.
 
 ## Core Features
 - **Cross-chain Atomic Swaps**: Secure token swaps between EVM and non-EVM chains using HTLC pattern
