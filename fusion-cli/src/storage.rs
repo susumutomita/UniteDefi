@@ -1,9 +1,9 @@
-use fusion_core::htlc::{SecretHash, HtlcState};
+use anyhow::{anyhow, Result};
+use fusion_core::htlc::{HtlcState, SecretHash};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use anyhow::{Result, anyhow};
-use serde::{Serialize, Deserialize};
-use std::time::{SystemTime, Duration};
+use std::time::{Duration, SystemTime};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StoredHtlc {
@@ -13,7 +13,7 @@ pub struct StoredHtlc {
     pub secret_hash: SecretHash,
     pub timeout: Duration,
     pub created_at: SystemTime,
-    pub state: String,
+    pub state: HtlcState,
     pub secret: Option<Vec<u8>>,
 }
 
@@ -30,20 +30,30 @@ impl HtlcStorage {
     }
 
     pub fn store(&self, htlc_id: String, stored_htlc: StoredHtlc) -> Result<()> {
-        let mut storage = self.htlcs.lock().map_err(|e| anyhow!("Lock error: {}", e))?;
+        let mut storage = self
+            .htlcs
+            .lock()
+            .map_err(|e| anyhow!("Lock error: {}", e))?;
         storage.insert(htlc_id, stored_htlc);
         Ok(())
     }
 
     pub fn get(&self, htlc_id: &str) -> Result<StoredHtlc> {
-        let storage = self.htlcs.lock().map_err(|e| anyhow!("Lock error: {}", e))?;
-        storage.get(htlc_id)
+        let storage = self
+            .htlcs
+            .lock()
+            .map_err(|e| anyhow!("Lock error: {}", e))?;
+        storage
+            .get(htlc_id)
             .cloned()
             .ok_or_else(|| anyhow!("HTLC not found: {}", htlc_id))
     }
 
-    pub fn update_state(&self, htlc_id: &str, state: String) -> Result<()> {
-        let mut storage = self.htlcs.lock().map_err(|e| anyhow!("Lock error: {}", e))?;
+    pub fn update_state(&self, htlc_id: &str, state: HtlcState) -> Result<()> {
+        let mut storage = self
+            .htlcs
+            .lock()
+            .map_err(|e| anyhow!("Lock error: {}", e))?;
         if let Some(stored) = storage.get_mut(htlc_id) {
             stored.state = state;
             Ok(())

@@ -1,12 +1,12 @@
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
-use fusion_core::htlc::{generate_secret, hash_secret, Htlc};
+use fusion_core::htlc::{generate_secret, hash_secret, Htlc, HtlcState};
 use serde_json::json;
 use std::time::Duration;
 
 mod storage;
-use storage::{HtlcStorage, StoredHtlc};
 use once_cell::sync::Lazy;
+use storage::{HtlcStorage, StoredHtlc};
 
 static STORAGE: Lazy<HtlcStorage> = Lazy::new(HtlcStorage::new);
 
@@ -98,7 +98,7 @@ async fn handle_create_htlc(args: CreateHtlcArgs) -> Result<()> {
         secret_hash,
         timeout: Duration::from_secs(args.timeout),
         created_at: std::time::SystemTime::now(),
-        state: "Pending".to_string(),
+        state: HtlcState::Pending,
         secret: Some(secret.to_vec()),
     };
     STORAGE.store(htlc_id.clone(), stored_htlc)?;
@@ -136,7 +136,7 @@ async fn handle_refund(args: RefundArgs) -> Result<()> {
     let stored_htlc = STORAGE.get(&args.htlc_id)?;
 
     // Check if HTLC is already claimed or refunded
-    if stored_htlc.state == "Claimed" {
+    if stored_htlc.state == HtlcState::Claimed {
         let output = json!({
             "error": "HTLC already claimed",
             "htlc_id": args.htlc_id,
@@ -146,7 +146,7 @@ async fn handle_refund(args: RefundArgs) -> Result<()> {
         return Ok(());
     }
 
-    if stored_htlc.state == "Refunded" {
+    if stored_htlc.state == HtlcState::Refunded {
         let output = json!({
             "error": "HTLC already refunded",
             "htlc_id": args.htlc_id,
@@ -156,8 +156,8 @@ async fn handle_refund(args: RefundArgs) -> Result<()> {
         return Ok(());
     }
 
-    // Recreate HTLC to check timeout
-    let mut htlc = Htlc::new(
+    // Recreate HTLC to validate construction
+    let _htlc = Htlc::new(
         stored_htlc.sender.clone(),
         stored_htlc.recipient.clone(),
         stored_htlc.amount,
@@ -169,7 +169,7 @@ async fn handle_refund(args: RefundArgs) -> Result<()> {
     let elapsed = std::time::SystemTime::now()
         .duration_since(stored_htlc.created_at)
         .unwrap_or(Duration::from_secs(0));
-    
+
     if elapsed <= stored_htlc.timeout {
         let output = json!({
             "error": "HTLC has not timed out yet",
@@ -181,7 +181,7 @@ async fn handle_refund(args: RefundArgs) -> Result<()> {
     }
 
     // Update state to refunded
-    STORAGE.update_state(&args.htlc_id, "Refunded".to_string())?;
+    STORAGE.update_state(&args.htlc_id, HtlcState::Refunded)?;
 
     // Output successful refund
     let output = json!({

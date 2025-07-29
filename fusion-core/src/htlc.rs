@@ -1,4 +1,5 @@
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::time::{Duration, SystemTime};
 use subtle::ConstantTimeEq;
@@ -39,7 +40,7 @@ pub enum HtlcError {
 }
 
 /// HTLCの状態
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum HtlcState {
     /// 作成されたが、まだクレームもリファンドもされていない
     Pending,
