@@ -4,6 +4,12 @@ use fusion_core::htlc::{generate_secret, hash_secret, Htlc};
 use serde_json::json;
 use std::time::Duration;
 
+mod storage;
+use storage::{HtlcStorage, StoredHtlc};
+use once_cell::sync::Lazy;
+
+static STORAGE: Lazy<HtlcStorage> = Lazy::new(HtlcStorage::new);
+
 #[derive(Parser)]
 #[command(name = "fusion-cli")]
 #[command(about = "UniteSwap CLI")]
@@ -74,8 +80,8 @@ async fn handle_create_htlc(args: CreateHtlcArgs) -> Result<()> {
 
     // Create HTLC
     let htlc = Htlc::new(
-        args.sender,
-        args.recipient,
+        args.sender.clone(),
+        args.recipient.clone(),
         args.amount,
         secret_hash,
         Duration::from_secs(args.timeout),
@@ -83,6 +89,19 @@ async fn handle_create_htlc(args: CreateHtlcArgs) -> Result<()> {
 
     // Generate a simple HTLC ID (in real implementation, this would be a proper hash)
     let htlc_id = format!("htlc_{}", hex::encode(&secret_hash[..8]));
+
+    // Store HTLC in storage
+    let stored_htlc = StoredHtlc {
+        sender: args.sender,
+        recipient: args.recipient,
+        amount: args.amount,
+        secret_hash,
+        timeout: Duration::from_secs(args.timeout),
+        created_at: std::time::SystemTime::now(),
+        state: "Pending".to_string(),
+        secret: Some(secret.to_vec()),
+    };
+    STORAGE.store(htlc_id.clone(), stored_htlc)?;
 
     // Output result as JSON
     let output = json!({
@@ -112,12 +131,63 @@ async fn handle_claim(_args: ClaimArgs) -> Result<()> {
     Ok(())
 }
 
-async fn handle_refund(_args: RefundArgs) -> Result<()> {
-    // TODO: Implement refund logic
-    // For now, return a placeholder response
+async fn handle_refund(args: RefundArgs) -> Result<()> {
+    // Get HTLC from storage
+    let stored_htlc = STORAGE.get(&args.htlc_id)?;
+
+    // Check if HTLC is already claimed or refunded
+    if stored_htlc.state == "Claimed" {
+        let output = json!({
+            "error": "HTLC already claimed",
+            "htlc_id": args.htlc_id,
+            "status": stored_htlc.state
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        return Ok(());
+    }
+
+    if stored_htlc.state == "Refunded" {
+        let output = json!({
+            "error": "HTLC already refunded",
+            "htlc_id": args.htlc_id,
+            "status": stored_htlc.state
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        return Ok(());
+    }
+
+    // Recreate HTLC to check timeout
+    let mut htlc = Htlc::new(
+        stored_htlc.sender.clone(),
+        stored_htlc.recipient.clone(),
+        stored_htlc.amount,
+        stored_htlc.secret_hash,
+        stored_htlc.timeout,
+    )?;
+
+    // Check if HTLC has timed out
+    let elapsed = std::time::SystemTime::now()
+        .duration_since(stored_htlc.created_at)
+        .unwrap_or(Duration::from_secs(0));
+    
+    if elapsed <= stored_htlc.timeout {
+        let output = json!({
+            "error": "HTLC has not timed out yet",
+            "htlc_id": args.htlc_id,
+            "timeout_remaining_seconds": (stored_htlc.timeout.as_secs() - elapsed.as_secs())
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        return Ok(());
+    }
+
+    // Update state to refunded
+    STORAGE.update_state(&args.htlc_id, "Refunded".to_string())?;
+
+    // Output successful refund
     let output = json!({
-        "error": "Refund functionality not yet implemented",
-        "message": "This feature will be implemented in Issue #17"
+        "htlc_id": args.htlc_id,
+        "status": "Refunded",
+        "refunded_at": chrono::Utc::now().to_rfc3339()
     });
 
     println!("{}", serde_json::to_string_pretty(&output)?);
