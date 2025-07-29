@@ -39,7 +39,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let secret = json["secret"].as_str().unwrap();
 
     println!("Created HTLC with ID: {}", htlc_id);
-    println!("Secret: {}", secret);
     println!("\nClaiming HTLC...");
 
     // Claim the HTLC
