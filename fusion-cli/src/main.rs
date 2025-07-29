@@ -119,16 +119,109 @@ async fn handle_create_htlc(args: CreateHtlcArgs) -> Result<()> {
     Ok(())
 }
 
-async fn handle_claim(_args: ClaimArgs) -> Result<()> {
-    // TODO: Implement claim logic
-    // For now, return a placeholder response
-    let output = json!({
-        "error": "Claim functionality not yet implemented",
-        "message": "This feature will be implemented in Issue #16"
-    });
+async fn handle_claim(args: ClaimArgs) -> Result<()> {
+    // Get HTLC from storage
+    let stored_htlc = match STORAGE.get(&args.htlc_id) {
+        Ok(htlc) => htlc,
+        Err(_) => {
+            let output = json!({
+                "error": "HTLC not found",
+                "htlc_id": args.htlc_id
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            return Ok(());
+        }
+    };
 
-    println!("{}", serde_json::to_string_pretty(&output)?);
-    Ok(())
+    // Check if HTLC is already claimed
+    if stored_htlc.state == HtlcState::Claimed {
+        let output = json!({
+            "error": "HTLC already claimed",
+            "htlc_id": args.htlc_id,
+            "status": stored_htlc.state
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        return Ok(());
+    }
+
+    // Check if HTLC is refunded
+    if stored_htlc.state == HtlcState::Refunded {
+        let output = json!({
+            "error": "HTLC already refunded",
+            "htlc_id": args.htlc_id,
+            "status": stored_htlc.state
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        return Ok(());
+    }
+
+    // Parse the secret from hex string
+    let secret_bytes = match hex::decode(&args.secret) {
+        Ok(bytes) => bytes,
+        Err(_) => {
+            let output = json!({
+                "error": "Invalid secret format",
+                "message": "Secret must be a valid hex string"
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            return Ok(());
+        }
+    };
+
+    // Convert to Secret type (32 bytes)
+    let secret: fusion_core::htlc::Secret = match secret_bytes.try_into() {
+        Ok(arr) => arr,
+        Err(_) => {
+            let output = json!({
+                "error": "Invalid secret length",
+                "message": "Secret must be exactly 32 bytes (64 hex characters)"
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            return Ok(());
+        }
+    };
+
+    // Create a mutable HTLC to validate the claim
+    let mut htlc = Htlc::new(
+        stored_htlc.sender.clone(),
+        stored_htlc.recipient.clone(),
+        stored_htlc.amount,
+        stored_htlc.secret_hash,
+        stored_htlc.timeout,
+    )?;
+
+    // Try to claim with the provided secret
+    match htlc.claim(&secret) {
+        Ok(_) => {
+            // Update state in storage
+            STORAGE.update_state(&args.htlc_id, HtlcState::Claimed)?;
+
+            // Output successful claim
+            let output = json!({
+                "htlc_id": args.htlc_id,
+                "status": "Claimed",
+                "claimed_at": chrono::Utc::now().to_rfc3339()
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Ok(())
+        }
+        Err(fusion_core::htlc::HtlcError::InvalidSecret) => {
+            let output = json!({
+                "error": "Invalid secret",
+                "htlc_id": args.htlc_id
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Ok(())
+        }
+        Err(e) => {
+            let output = json!({
+                "error": format!("Claim failed: {}", e),
+                "htlc_id": args.htlc_id
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Ok(())
+        }
+    }
 }
 
 async fn handle_refund(args: RefundArgs) -> Result<()> {
