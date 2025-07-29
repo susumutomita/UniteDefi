@@ -1,18 +1,17 @@
-# Escrow Contract Integration
+## Foundry
 
-## Contract Overview
+**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
-Since 1inch doesn't provide official testnet deployments, we've created our own escrow contracts that follow the 1inch interface pattern for the hackathon demo.
+Foundry consists of:
 
-### Escrow Factory
-- Interface: IEscrowFactory
-- Deploys individual escrow contracts for each swap
-- Tracks escrows by unique ID
+-   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+-   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+-   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+-   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
-### Escrow Contract
-- HTLC-based atomic swap implementation
-- Supports both ETH and ERC20 tokens
-- Claim with secret reveal or refund after timeout
+## Documentation
+
+https://book.getfoundry.sh/
 
 ### Required Functions
 ```solidity
@@ -27,52 +26,58 @@ interface IEscrowFactory {
 
     function getEscrow(bytes32 escrowId) external view returns (address);
 }
-
-interface IEscrow {
-    function claim(bytes32 secret) external;
-    function refund() external;
-    function getDetails() external view returns (
-        address sender,
-        address recipient,
-        uint256 amount,
-        bytes32 secretHash,
-        uint256 deadline,
-        uint8 state
-    );
-}
 ```
 
-## Deployment Instructions
+## Usage
 
-1. Install dependencies:
-```bash
-cd contracts/ethereum
-npm install
+### Build
+
+```shell
+$ forge build
 ```
 
-2. Configure environment:
-```bash
-cp .env.example .env
-# Edit .env with your RPC URL and private key
+### Test
+
+```shell
+$ forge test
 ```
 
-3. Compile contracts:
-```bash
-npm run compile
+### Format
+
+```shell
+$ forge fmt
 ```
 
-4. Deploy to Sepolia:
-```bash
-npm run deploy:sepolia
+### Gas Snapshots
+
+```shell
+$ forge snapshot
 ```
 
-5. Save the deployed EscrowFactory address for use in the Rust connector.
+### Anvil
 
-## Testing
+```shell
+$ anvil
+```
 
-Run tests with:
-```bash
-npm test
+### Deploy
+
+```shell
+$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```
+
+### Cast
+
+```shell
+$ cast <subcommand>
+```
+
+### Help
+
+```shell
+$ forge --help
+$ anvil --help
+$ cast --help
 ```
 
 ## Integration with Rust
