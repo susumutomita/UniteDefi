@@ -195,7 +195,7 @@ async fn handle_claim(args: ClaimArgs) -> Result<()> {
         Ok(_) => {
             // Update state in storage
             STORAGE.update_state(&args.htlc_id, HtlcState::Claimed)?;
-            
+
             // Output successful claim
             let output = json!({
                 "htlc_id": args.htlc_id,
