@@ -1,19 +1,23 @@
-## Foundry
+# Escrow Contract Integration
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## Contract Overview
 
-Foundry consists of:
+Since 1inch doesn't provide official testnet deployments, we've created our own escrow contracts that follow the 1inch interface pattern for the hackathon demo.
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### Escrow Factory
 
-## Documentation
+- Interface: IEscrowFactory
+- Deploys individual escrow contracts for each swap
+- Tracks escrows by unique ID
 
-https://book.getfoundry.sh/
+### Escrow Contract
+
+- HTLC-based atomic swap implementation
+- Supports both ETH and ERC20 tokens
+- Claim with secret reveal or refund after timeout
 
 ### Required Functions
+
 ```solidity
 interface IEscrowFactory {
     function createEscrow(
@@ -26,59 +30,106 @@ interface IEscrowFactory {
 
     function getEscrow(bytes32 escrowId) external view returns (address);
 }
+
+interface IEscrow {
+    function claim(bytes32 secret) external;
+    function refund() external;
+    function getDetails() external view returns (
+        address sender,
+        address recipient,
+        uint256 amount,
+        bytes32 secretHash,
+        uint256 deadline,
+        uint8 state
+    );
+}
 ```
 
-## Usage
+## Foundry Development
+
+This project uses Foundry for development, testing, and deployment.
 
 ### Build
 
 ```shell
-$ forge build
+forge build
 ```
 
 ### Test
 
 ```shell
-$ forge test
+forge test
 ```
 
 ### Format
 
 ```shell
-$ forge fmt
+forge fmt
 ```
 
 ### Gas Snapshots
 
 ```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
+forge snapshot
 ```
 
 ### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+forge script script/DeployEscrowFactory.s.sol --rpc-url <your_rpc_url> --private-key <your_private_key> --broadcast
 ```
 
-### Cast
+### Local Development with Anvil
 
 ```shell
-$ cast <subcommand>
+anvil
 ```
 
-### Help
+## Deployment Instructions
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+1. Install Foundry if not already installed:
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+2. Build contracts:
+
+```bash
+forge build
+```
+
+3. Deploy to local testnet:
+
+```bash
+# Start Anvil in another terminal
+anvil
+
+# Deploy using the provided script
+forge script script/DeployEscrowFactory.s.sol --fork-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
+```
+
+4. For testnet deployment, set your environment variables and use:
+
+```bash
+forge script script/DeployEscrowFactory.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+```
+
+## Testing
+
+Run tests with:
+
+```bash
+forge test
+```
+
+Run tests with gas reporting:
+
+```bash
+forge test --gas-report
 ```
 
 ## Integration with Rust
+
 The deployed factory address should be used in the Ethereum connector configuration.
