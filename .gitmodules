@@ -10,3 +10,6 @@
 [submodule "references/fusion-resolver-example"]
 	path = references/fusion-resolver-example
 	url = https://github.com/1inch/fusion-resolver-example
+[submodule "contracts/ethereum/lib/forge-std"]
+	path = contracts/ethereum/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
