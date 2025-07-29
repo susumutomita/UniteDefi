@@ -13,6 +13,6 @@ interface IEscrowFactory {
         uint256 timeout,
         address recipient
     ) external payable returns (address escrow);
-    
+
     function getEscrow(bytes32 escrowId) external view returns (address);
 }

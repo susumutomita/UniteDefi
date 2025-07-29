@@ -10,7 +10,7 @@ import "./Escrow.sol";
  */
 contract EscrowFactory is IEscrowFactory {
     mapping(bytes32 => address) public escrows;
-    
+
     event EscrowCreated(
         bytes32 indexed escrowId,
         address indexed escrow,
@@ -21,7 +21,7 @@ contract EscrowFactory is IEscrowFactory {
         bytes32 secretHash,
         uint256 timeout
     );
-    
+
     /**
      * @dev Creates a new escrow contract
      * @param token The token to be escrowed (address(0) for ETH)
@@ -41,11 +41,11 @@ contract EscrowFactory is IEscrowFactory {
         require(secretHash != bytes32(0), "Invalid secret hash");
         require(timeout > 0, "Invalid timeout");
         require(recipient != address(0), "Invalid recipient");
-        
+
         if (token == address(0)) {
             require(msg.value == amount, "Incorrect ETH amount");
         }
-        
+
         // Generate unique escrow ID
         bytes32 escrowId = keccak256(
             abi.encodePacked(
@@ -58,21 +58,23 @@ contract EscrowFactory is IEscrowFactory {
                 block.timestamp
             )
         );
-        
+
         require(escrows[escrowId] == address(0), "Escrow already exists");
-        
+
         // Deploy new escrow contract
-        escrow = address(new Escrow{value: msg.value}(
-            msg.sender,
-            recipient,
-            token,
-            amount,
-            secretHash,
-            block.timestamp + timeout
-        ));
-        
+        escrow = address(
+            new Escrow{value: msg.value}(
+                msg.sender,
+                recipient,
+                token,
+                amount,
+                secretHash,
+                block.timestamp + timeout
+            )
+        );
+
         escrows[escrowId] = escrow;
-        
+
         emit EscrowCreated(
             escrowId,
             escrow,
@@ -83,10 +85,10 @@ contract EscrowFactory is IEscrowFactory {
             secretHash,
             timeout
         );
-        
+
         return escrow;
     }
-    
+
     /**
      * @dev Get escrow address by ID
      * @param escrowId The escrow ID

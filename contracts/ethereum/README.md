@@ -5,16 +5,19 @@
 Since 1inch doesn't provide official testnet deployments, we've created our own escrow contracts that follow the 1inch interface pattern for the hackathon demo.
 
 ### Escrow Factory
+
 - Interface: IEscrowFactory
 - Deploys individual escrow contracts for each swap
 - Tracks escrows by unique ID
 
 ### Escrow Contract
+
 - HTLC-based atomic swap implementation
 - Supports both ETH and ERC20 tokens
 - Claim with secret reveal or refund after timeout
 
 ### Required Functions
+
 ```solidity
 interface IEscrowFactory {
     function createEscrow(
@@ -42,38 +45,91 @@ interface IEscrow {
 }
 ```
 
+## Foundry Development
+
+This project uses Foundry for development, testing, and deployment.
+
+### Build
+
+```shell
+forge build
+```
+
+### Test
+
+```shell
+forge test
+```
+
+### Format
+
+```shell
+forge fmt
+```
+
+### Gas Snapshots
+
+```shell
+forge snapshot
+```
+
+### Deploy
+
+```shell
+forge script script/DeployEscrowFactory.s.sol --rpc-url <your_rpc_url> --private-key <your_private_key> --broadcast
+```
+
+### Local Development with Anvil
+
+```shell
+anvil
+```
+
 ## Deployment Instructions
 
-1. Install dependencies:
+1. Install Foundry if not already installed:
+
 ```bash
-cd contracts/ethereum
-npm install
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 ```
 
-2. Configure environment:
+2. Build contracts:
+
 ```bash
-cp .env.example .env
-# Edit .env with your RPC URL and private key
+forge build
 ```
 
-3. Compile contracts:
+3. Deploy to local testnet:
+
 ```bash
-npm run compile
+# Start Anvil in another terminal
+anvil
+
+# Deploy using the provided script
+forge script script/DeployEscrowFactory.s.sol --fork-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
 ```
 
-4. Deploy to Sepolia:
-```bash
-npm run deploy:sepolia
-```
+4. For testnet deployment, set your environment variables and use:
 
-5. Save the deployed EscrowFactory address for use in the Rust connector.
+```bash
+forge script script/DeployEscrowFactory.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+```
 
 ## Testing
 
 Run tests with:
+
 ```bash
-npm test
+forge test
+```
+
+Run tests with gas reporting:
+
+```bash
+forge test --gas-report
 ```
 
 ## Integration with Rust
+
 The deployed factory address should be used in the Ethereum connector configuration.
