@@ -1,8 +1,9 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{Args, Parser, Subcommand};
 use fusion_core::htlc::{generate_secret, hash_secret, Htlc};
+use fusion_core::storage::HtlcStorage;
 use serde_json::json;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 #[derive(Parser)]
 #[command(name = "fusion-cli")]
@@ -74,8 +75,8 @@ async fn handle_create_htlc(args: CreateHtlcArgs) -> Result<()> {
 
     // Create HTLC
     let htlc = Htlc::new(
-        args.sender,
-        args.recipient,
+        args.sender.clone(),
+        args.recipient.clone(),
         args.amount,
         secret_hash,
         Duration::from_secs(args.timeout),
@@ -83,6 +84,10 @@ async fn handle_create_htlc(args: CreateHtlcArgs) -> Result<()> {
 
     // Generate a simple HTLC ID (in real implementation, this would be a proper hash)
     let htlc_id = format!("htlc_{}", hex::encode(&secret_hash[..8]));
+
+    // Store HTLC
+    let storage = HtlcStorage::new()?;
+    storage.store_htlc(htlc_id.clone(), &htlc, args.timeout)?;
 
     // Output result as JSON
     let output = json!({
@@ -100,16 +105,71 @@ async fn handle_create_htlc(args: CreateHtlcArgs) -> Result<()> {
     Ok(())
 }
 
-async fn handle_claim(_args: ClaimArgs) -> Result<()> {
-    // TODO: Implement claim logic
-    // For now, return a placeholder response
-    let output = json!({
-        "error": "Claim functionality not yet implemented",
-        "message": "This feature will be implemented in Issue #16"
-    });
-
-    println!("{}", serde_json::to_string_pretty(&output)?);
-    Ok(())
+async fn handle_claim(args: ClaimArgs) -> Result<()> {
+    let storage = HtlcStorage::new()?;
+    
+    // Get HTLC from storage
+    let stored_htlc = storage.get_htlc(&args.htlc_id)?
+        .ok_or_else(|| anyhow!("HTLC not found"))?;
+    
+    // Check if already claimed
+    if stored_htlc.state == "Claimed" {
+        let output = json!({
+            "error": "HTLC already claimed"
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        return Err(anyhow!("HTLC already claimed"));
+    }
+    
+    // Parse secret from hex
+    let secret_bytes = hex::decode(&args.secret)
+        .map_err(|_| anyhow!("Invalid secret format"))?;
+    
+    if secret_bytes.len() != 32 {
+        let output = json!({
+            "error": "Invalid secret length"
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+        return Err(anyhow!("Invalid secret length"));
+    }
+    
+    let mut secret = [0u8; 32];
+    secret.copy_from_slice(&secret_bytes);
+    
+    // Create HTLC object to verify secret
+    let mut htlc = Htlc::new(
+        stored_htlc.sender.clone(),
+        stored_htlc.recipient.clone(),
+        stored_htlc.amount,
+        stored_htlc.secret_hash,
+        Duration::from_secs(stored_htlc.timeout_seconds),
+    )?;
+    
+    // Try to claim with the provided secret
+    match htlc.claim(&secret) {
+        Ok(()) => {
+            let claimed_at = SystemTime::now();
+            // Update storage
+            storage.update_htlc_state(&args.htlc_id, "Claimed", Some(claimed_at))?;
+            
+            // Output success result
+            let output = json!({
+                "htlc_id": args.htlc_id,
+                "status": "Claimed",
+                "claimed_at": chrono::DateTime::<chrono::Utc>::from(claimed_at).to_rfc3339()
+            });
+            
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Ok(())
+        }
+        Err(e) => {
+            let output = json!({
+                "error": format!("Invalid secret: {}", e)
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+            Err(anyhow!("Invalid secret: {}", e))
+        }
+    }
 }
 
 async fn handle_refund(_args: RefundArgs) -> Result<()> {
