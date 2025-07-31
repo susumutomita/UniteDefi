@@ -87,6 +87,51 @@ anvil
 
 ## Deployment Instructions
 
+### Using Makefile (Recommended)
+
+1. Setup environment variables:
+```bash
+# Create .env file with following structure:
+cat > .env <<EOF
+# Sepolia Configuration
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY
+SEPOLIA_SENDER_ADDRESS=0xYourWalletAddress
+SEPOLIA_PRIVATE_KEY=0xYourPrivateKey
+
+# Base Sepolia Configuration
+BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+BASE_SENDER_ADDRESS=0xYourWalletAddress
+BASE_PRIVATE_KEY=0xYourPrivateKey
+
+# Monad Testnet Configuration (when available)
+MONAD_RPC_URL=https://monad-testnet-rpc.url
+MONAD_SENDER_ADDRESS=0xYourWalletAddress
+MONAD_PRIVATE_KEY=0xYourPrivateKey
+
+# Etherscan API for verification
+ETHERSCAN_API_KEY=YourEtherscanAPIKey
+EOF
+
+# Edit .env with your actual values
+```
+
+2. Deploy using Make commands:
+```bash
+# Deploy to Sepolia
+make deploy-sepolia
+
+# Deploy to Base Sepolia
+make deploy-base-sepolia
+
+# Deploy to Monad (when available)
+make deploy-monad
+
+# Deploy using custom network
+make deploy RPC_URL=<your_rpc> SENDER_ADDRESS=<your_address> PRIVATE_KEY=<your_key>
+```
+
+### Manual Deployment
+
 1. Install Foundry if not already installed:
 
 ```bash
@@ -97,6 +142,8 @@ foundryup
 2. Build contracts:
 
 ```bash
+make build
+# or
 forge build
 ```
 
@@ -144,7 +191,10 @@ forge script script/DeployEscrowFactory.s.sol:DeployEscrowFactory \
 ```
 
 3. Deployed Contract Addresses:
-- **Base Sepolia EscrowFactory**: `[To be deployed]`
+- **Base Sepolia EscrowFactory**: `0xADa1288f0b06008de7cc16630c49995D322E8023`
+  - Transaction: `0x469615e210945e0b3c23cddf083a933120c440561edd5fb1c195590910bd3b09`
+  - Block: 29079602
+  - Deployed on: 2025-07-31
 
 ### Base Sepolia Network Details
 - Chain ID: 84532

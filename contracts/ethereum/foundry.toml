@@ -6,10 +6,5 @@ solc = "0.8.23"
 optimizer = true
 optimizer_runs = 200
 
-[etherscan]
-base-sepolia = { key = "${BASESCAN_API_KEY}" }
-
 [rpc_endpoints]
 base-sepolia = "${BASE_SEPOLIA_RPC_URL}"
-
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
