@@ -6,6 +6,7 @@ pub enum Chain {
     Ethereum,
     NEAR,
     Polygon,
+    BaseSepolia,
     // Add more chains as needed
 }
 
@@ -15,6 +16,7 @@ impl Chain {
             Chain::Ethereum => "Ethereum",
             Chain::NEAR => "NEAR",
             Chain::Polygon => "Polygon",
+            Chain::BaseSepolia => "Base Sepolia",
         }
     }
 }

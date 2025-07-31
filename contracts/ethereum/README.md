@@ -113,8 +113,44 @@ forge script script/DeployEscrowFactory.s.sol --fork-url http://localhost:8545 -
 4. For testnet deployment, set your environment variables and use:
 
 ```bash
-forge script script/DeployEscrowFactory.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+# Deploy to Base Sepolia
+forge script script/DeployEscrowFactory.s.sol --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --verifier-url https://api-sepolia.basescan.org/api --etherscan-api-key $BASESCAN_API_KEY
+
+# Deploy to Ethereum Sepolia
+forge script script/DeployEscrowFactory.s.sol --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY
 ```
+
+## Base Sepolia Deployment
+
+Base Sepolia is the testnet for Base (Coinbase's Layer 2). To deploy:
+
+1. Set up your environment variables in `.env`:
+```bash
+cp .env.example .env
+# Edit .env with your actual values
+```
+
+2. Deploy to Base Sepolia:
+```bash
+source .env
+forge script script/DeployEscrowFactory.s.sol:DeployEscrowFactory \
+  --rpc-url $BASE_SEPOLIA_RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast \
+  --verify \
+  --verifier-url https://api-sepolia.basescan.org/api \
+  --etherscan-api-key $BASESCAN_API_KEY \
+  -vvvv
+```
+
+3. Deployed Contract Addresses:
+- **Base Sepolia EscrowFactory**: `[To be deployed]`
+
+### Base Sepolia Network Details
+- Chain ID: 84532
+- RPC URL: https://sepolia.base.org
+- Block Explorer: https://sepolia.basescan.org/
+- Faucet: https://www.coinbase.com/faucets/base-ethereum-goerli-faucet
 
 ## Testing
 
