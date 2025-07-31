@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod eip712_tests {
-    use fusion_core::eip712::{EIP712Domain, OrderEIP712, TypedData};
+    use fusion_core::eip712::{EIP712Domain, OrderEIP712};
     use fusion_core::order::Order;
 
     #[test]
@@ -33,7 +33,7 @@ mod eip712_tests {
 
         let typed_data = order.to_eip712(84532, "0x171C87724E720F2806fc29a010a62897B30fdb62");
         let hash = typed_data.hash();
-        
+
         assert_eq!(hash.len(), 32);
     }
 }

@@ -4,8 +4,8 @@ use fusion_core::htlc::{generate_secret, hash_secret, Htlc, HtlcState};
 use serde_json::json;
 use std::time::Duration;
 
-mod storage;
 mod order_handler;
+mod storage;
 use once_cell::sync::Lazy;
 use storage::{HtlcStorage, StoredHtlc};
 

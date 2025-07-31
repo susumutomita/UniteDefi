@@ -2,7 +2,10 @@
 
 ## Overview
 
-The `fusion-cli` tool provides commands to create and manage limit orders compatible with the 1inch Limit Order Protocol v3. This guide explains how to use the `order create` command to generate orders with embedded HTLC (Hash Time-Locked Contract) information.
+The `fusion-cli` tool provides commands to create and manage limit orders.
+These orders are compatible with the 1inch Limit Order Protocol v3.
+This guide explains how to use the `order create` command.
+It shows how to generate orders with embedded HTLC information.
 
 ## Order Create Command
 
@@ -80,12 +83,14 @@ The command outputs a JSON object containing:
 
 ## HTLC Information Encoding
 
-The HTLC information is embedded in the order's `interactions` field (also referred to as `makerAssetData`):
+The HTLC information is embedded in the order's `interactions` field.
+This field is also referred to as `makerAssetData`:
 
-- **Bytes 0-31**: HTLC secret hash (32 bytes)
-- **Bytes 32-63**: HTLC timeout as uint256 (32 bytes, big-endian)
+- Bytes 0-31: HTLC secret hash (32 bytes)
+- Bytes 32-63: HTLC timeout as uint256 (32 bytes, big-endian)
 
-This encoding allows the order to carry cross-chain swap information while remaining compatible with the 1inch protocol.
+This encoding allows the order to carry cross-chain swap information.
+It remains compatible with the 1inch protocol.
 
 ## Signing the Order
 

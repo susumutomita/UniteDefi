@@ -11,11 +11,11 @@ pub struct Order {
     pub allowed_sender: String,
     pub making_amount: u128,
     pub taking_amount: u128,
-    pub offsets: u256,
+    pub offsets: U256,
     pub interactions: String,
 }
 
-type u256 = u64; // Simplified for now
+type U256 = u64; // Simplified for now
 
 impl Order {
     pub fn maker_asset(&self) -> &str {
@@ -39,6 +39,7 @@ impl Order {
     }
 }
 
+#[derive(Default)]
 pub struct OrderBuilder {
     salt: Option<[u8; 32]>,
     maker_asset: Option<String>,
@@ -48,24 +49,13 @@ pub struct OrderBuilder {
     allowed_sender: Option<String>,
     making_amount: Option<u128>,
     taking_amount: Option<u128>,
-    offsets: Option<u256>,
+    offsets: Option<U256>,
     interactions: Option<String>,
 }
 
 impl OrderBuilder {
     pub fn new() -> Self {
-        Self {
-            salt: None,
-            maker_asset: None,
-            taker_asset: None,
-            maker: None,
-            receiver: None,
-            allowed_sender: None,
-            making_amount: None,
-            taking_amount: None,
-            offsets: None,
-            interactions: None,
-        }
+        Self::default()
     }
 
     pub fn salt(mut self, salt: [u8; 32]) -> Self {
@@ -108,7 +98,7 @@ impl OrderBuilder {
         self
     }
 
-    pub fn offsets(mut self, offsets: u256) -> Self {
+    pub fn offsets(mut self, offsets: U256) -> Self {
         self.offsets = Some(offsets);
         self
     }
@@ -129,13 +119,25 @@ impl OrderBuilder {
 
         Ok(Order {
             salt,
-            maker_asset: self.maker_asset.ok_or_else(|| anyhow!("maker_asset is required"))?,
-            taker_asset: self.taker_asset.ok_or_else(|| anyhow!("taker_asset is required"))?,
+            maker_asset: self
+                .maker_asset
+                .ok_or_else(|| anyhow!("maker_asset is required"))?,
+            taker_asset: self
+                .taker_asset
+                .ok_or_else(|| anyhow!("taker_asset is required"))?,
             maker: self.maker.ok_or_else(|| anyhow!("maker is required"))?,
-            receiver: self.receiver.unwrap_or_else(|| "0x0000000000000000000000000000000000000000".to_string()),
-            allowed_sender: self.allowed_sender.unwrap_or_else(|| "0x0000000000000000000000000000000000000000".to_string()),
-            making_amount: self.making_amount.ok_or_else(|| anyhow!("making_amount is required"))?,
-            taking_amount: self.taking_amount.ok_or_else(|| anyhow!("taking_amount is required"))?,
+            receiver: self
+                .receiver
+                .unwrap_or_else(|| "0x0000000000000000000000000000000000000000".to_string()),
+            allowed_sender: self
+                .allowed_sender
+                .unwrap_or_else(|| "0x0000000000000000000000000000000000000000".to_string()),
+            making_amount: self
+                .making_amount
+                .ok_or_else(|| anyhow!("making_amount is required"))?,
+            taking_amount: self
+                .taking_amount
+                .ok_or_else(|| anyhow!("taking_amount is required"))?,
             offsets: self.offsets.unwrap_or(0),
             interactions: self.interactions.unwrap_or_else(|| "0x".to_string()),
         })

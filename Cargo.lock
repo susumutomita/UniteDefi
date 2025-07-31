@@ -2463,6 +2463,7 @@ dependencies = [
 name = "fusion-core"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "chrono",
  "ethers",
@@ -2471,7 +2472,9 @@ dependencies = [
  "proptest",
  "rand 0.8.5",
  "serde",
+ "serde_json",
  "sha2 0.10.9",
+ "sha3",
  "subtle",
  "test-case",
  "thiserror 1.0.69",
