@@ -5,6 +5,7 @@ use serde_json::json;
 use std::time::Duration;
 
 mod storage;
+mod order_handler;
 use once_cell::sync::Lazy;
 use storage::{HtlcStorage, StoredHtlc};
 
@@ -27,6 +28,20 @@ enum Commands {
     Claim(ClaimArgs),
     /// Refund an HTLC after timeout
     Refund(RefundArgs),
+    /// Order commands
+    Order(OrderCommands),
+}
+
+#[derive(Args)]
+struct OrderCommands {
+    #[command(subcommand)]
+    command: OrderSubcommands,
+}
+
+#[derive(Subcommand)]
+enum OrderSubcommands {
+    /// Create a new limit order
+    Create(order_handler::CreateOrderArgs),
 }
 
 #[derive(Args)]
@@ -70,6 +85,9 @@ async fn main() -> Result<()> {
         Commands::CreateHtlc(args) => handle_create_htlc(args).await,
         Commands::Claim(args) => handle_claim(args).await,
         Commands::Refund(args) => handle_refund(args).await,
+        Commands::Order(order_cmd) => match order_cmd.command {
+            OrderSubcommands::Create(args) => order_handler::handle_create_order(args).await,
+        },
     }
 }
 
