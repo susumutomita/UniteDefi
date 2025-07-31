@@ -16,6 +16,11 @@ rand.workspace = true
 subtle.workspace = true
 ethers = { version = "2.0", features = ["ws", "rustls"] }
 tokio = { workspace = true, features = ["full"] }
+near-primitives = "0.17"
+near-jsonrpc-client = "0.6"
+near-crypto = "0.17"
+serde_json.workspace = true
+bs58 = "0.5"
 
 [build-dependencies]
 ethers = { version = "2.0", features = ["abigen"] }
