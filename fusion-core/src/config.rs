@@ -40,6 +40,17 @@ impl Default for Config {
             },
         );
 
+        // Base Sepolia testnet
+        chains.insert(
+            Chain::BaseSepolia,
+            ChainConfig {
+                rpc_url: "https://sepolia.base.org".to_string(),
+                chain_id: 84532,
+                escrow_factory: None, // Will be set after deployment
+                explorer_url: "https://sepolia.basescan.org".to_string(),
+            },
+        );
+
         Self { chains }
     }
 }
@@ -70,6 +81,19 @@ impl Config {
         if let Ok(near_contract) = std::env::var("NEAR_HTLC_CONTRACT_ID") {
             if let Some(near_config) = config.chains.get_mut(&Chain::NEAR) {
                 near_config.escrow_factory = Some(near_contract);
+            }
+        }
+
+        // Base Sepolia configuration
+        if let Ok(base_rpc) = std::env::var("BASE_SEPOLIA_RPC_URL") {
+            if let Some(base_config) = config.chains.get_mut(&Chain::BaseSepolia) {
+                base_config.rpc_url = base_rpc;
+            }
+        }
+
+        if let Ok(base_factory) = std::env::var("BASE_ESCROW_FACTORY_ADDRESS") {
+            if let Some(base_config) = config.chains.get_mut(&Chain::BaseSepolia) {
+                base_config.escrow_factory = Some(base_factory);
             }
         }
 
