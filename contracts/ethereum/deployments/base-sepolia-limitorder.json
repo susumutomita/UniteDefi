@@ -1,0 +1,16 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "deploymentDate": "2025-07-31",
+  "contracts": {
+    "LimitOrderProtocol": {
+      "address": "0x171C87724E720F2806fc29a010a62897B30fdb62",
+      "transactionHash": "0x7f2542bcbba474cd2f32360968be9c59b98dae67873a4a60a1733af355b781cf",
+      "blockNumber": 29102175,
+      "deployer": "0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950",
+      "wethAddress": "0x4200000000000000000000000000000000000006"
+    }
+  },
+  "gasUsed": 3532194,
+  "gasCost": "0.010596582296704296 ETH"
+}

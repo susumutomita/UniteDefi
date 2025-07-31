@@ -1,4 +1,4 @@
-.PHONY: help build clean test deploy deploy-sepolia deploy-base-sepolia deploy-monad verify
+.PHONY: help build clean test deploy deploy-sepolia deploy-base-sepolia deploy-monad verify deploy-limitorder-base-sepolia
 
 # Default target - show help
 help:
@@ -10,10 +10,13 @@ help:
 	@echo "  make test-gas           - Run tests with gas reporting"
 	@echo ""
 	@echo "Deployment commands:"
-	@echo "  make deploy-sepolia     - Deploy to Ethereum Sepolia testnet"
-	@echo "  make deploy-base-sepolia - Deploy to Base Sepolia testnet"
-	@echo "  make deploy-monad       - Deploy to Monad testnet (when available)"
-	@echo "  make deploy             - Deploy using custom environment variables"
+	@echo "  make deploy-sepolia     - Deploy EscrowFactory to Ethereum Sepolia testnet"
+	@echo "  make deploy-base-sepolia - Deploy EscrowFactory to Base Sepolia testnet"
+	@echo "  make deploy-monad       - Deploy EscrowFactory to Monad testnet (when available)"
+	@echo "  make deploy             - Deploy EscrowFactory using custom environment variables"
+	@echo ""
+	@echo "1inch Limit Order Protocol deployment:"
+	@echo "  make deploy-limitorder-base-sepolia - Deploy 1inch Limit Order Protocol to Base Sepolia"
 	@echo ""
 	@echo "Verification:"
 	@echo "  make verify             - Verify contract on Etherscan"
@@ -94,3 +97,13 @@ verify:
 		--etherscan-api-key $(ETHERSCAN_API_KEY) \
 		$(CONTRACT_ADDRESS) \
 		src/EscrowFactory.sol:EscrowFactory
+
+# Deploy 1inch Limit Order Protocol to Base Sepolia
+deploy-limitorder-base-sepolia: build
+	@echo "Deploying 1inch Limit Order Protocol to Base Sepolia..."
+	@echo ""
+	forge script script/DeployLimitOrderProtocol.s.sol:DeployLimitOrderProtocol \
+		--rpc-url $(BASE_SEPOLIA_RPC_URL) \
+		--broadcast \
+		--private-key $(BASE_PRIVATE_KEY) \
+		-vvvv

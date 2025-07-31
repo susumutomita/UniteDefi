@@ -13,3 +13,12 @@
 [submodule "contracts/ethereum/lib/forge-std"]
 	path = contracts/ethereum/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "contracts/ethereum/lib/limit-order-protocol"]
+	path = contracts/ethereum/lib/limit-order-protocol
+	url = https://github.com/1inch/limit-order-protocol
+[submodule "contracts/ethereum/lib/openzeppelin-contracts"]
+	path = contracts/ethereum/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "contracts/ethereum/lib/solidity-utils"]
+	path = contracts/ethereum/lib/solidity-utils
+	url = https://github.com/1inch/solidity-utils.git
