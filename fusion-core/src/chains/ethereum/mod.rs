@@ -1,8 +1,8 @@
 use crate::htlc::SecretHash;
+use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Provider};
 use ethers::signers::{LocalWallet, Signer};
 use ethers::types::{Address, TransactionReceipt, U256};
-use ethers::middleware::SignerMiddleware;
 use std::sync::Arc;
 
 pub mod abi;
@@ -39,30 +39,30 @@ impl EthereumConnector {
         timeout: U256,
         recipient: Address,
     ) -> Result<Address, Box<dyn std::error::Error>> {
-        let signer = self.signer.as_ref()
-            .ok_or("Signer not configured")?;
-        
-        let client = SignerMiddleware::new(self.provider.clone(), signer.clone().with_chain_id(1u64));
-        
+        let signer = self.signer.as_ref().ok_or("Signer not configured")?;
+
+        let client =
+            SignerMiddleware::new(self.provider.clone(), signer.clone().with_chain_id(1u64));
+
         // Foundryで生成されたABIバインディングを使用
         let factory = abi::factory::IEscrowFactory::new(self.factory_address, Arc::new(client));
-        
+
         // secret_hashを[u8; 32]から[u8; 32]に変換（すでに同じ型）
         let secret_hash_bytes = secret_hash;
-        
+
         // create_escrowを呼び出し
         let tx = factory.create_escrow(token, amount, secret_hash_bytes, timeout, recipient);
-        
+
         // ETHを送る場合はvalueを設定
         let tx = if token == Address::zero() {
             tx.value(amount)
         } else {
             tx
         };
-        
+
         let pending_tx = tx.send().await?;
         let receipt = pending_tx.await?.ok_or("Transaction failed")?;
-        
+
         // イベントからescrowアドレスを取得
         // EscrowCreatedイベントの2番目のトピックがescrowアドレス
         for log in receipt.logs {
@@ -74,7 +74,7 @@ impl EthereumConnector {
                 return Ok(escrow_address);
             }
         }
-        
+
         Err("Escrow address not found in logs".into())
     }
 
@@ -83,19 +83,19 @@ impl EthereumConnector {
         escrow_address: Address,
         secret: [u8; 32],
     ) -> Result<TransactionReceipt, Box<dyn std::error::Error>> {
-        let signer = self.signer.as_ref()
-            .ok_or("Signer not configured")?;
-        
-        let client = SignerMiddleware::new(self.provider.clone(), signer.clone().with_chain_id(1u64));
-        
+        let signer = self.signer.as_ref().ok_or("Signer not configured")?;
+
+        let client =
+            SignerMiddleware::new(self.provider.clone(), signer.clone().with_chain_id(1u64));
+
         // Escrowコントラクトに接続
         let escrow = abi::escrow::IEscrow::new(escrow_address, Arc::new(client));
-        
+
         // claimを実行
         let tx = escrow.claim(secret);
         let pending_tx = tx.send().await?;
         let receipt = pending_tx.await?.ok_or("Transaction failed")?;
-        
+
         Ok(receipt)
     }
 
@@ -103,19 +103,19 @@ impl EthereumConnector {
         &self,
         escrow_address: Address,
     ) -> Result<TransactionReceipt, Box<dyn std::error::Error>> {
-        let signer = self.signer.as_ref()
-            .ok_or("Signer not configured")?;
-        
-        let client = SignerMiddleware::new(self.provider.clone(), signer.clone().with_chain_id(1u64));
-        
+        let signer = self.signer.as_ref().ok_or("Signer not configured")?;
+
+        let client =
+            SignerMiddleware::new(self.provider.clone(), signer.clone().with_chain_id(1u64));
+
         // Escrowコントラクトに接続
         let escrow = abi::escrow::IEscrow::new(escrow_address, Arc::new(client));
-        
+
         // refundを実行
         let tx = escrow.refund();
         let pending_tx = tx.send().await?;
         let receipt = pending_tx.await?.ok_or("Transaction failed")?;
-        
+
         Ok(receipt)
     }
 }

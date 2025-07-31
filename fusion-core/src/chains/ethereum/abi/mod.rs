@@ -6,7 +6,7 @@
 pub mod escrow {
     // build.rsによって生成されるまでダミー実装
     use ethers::prelude::*;
-    
+
     abigen!(
         IEscrow,
         r#"[
@@ -33,7 +33,7 @@ pub mod escrow {
 pub mod factory {
     // build.rsによって生成されるまでダミー実装
     use ethers::prelude::*;
-    
+
     abigen!(
         IEscrowFactory,
         r#"[
