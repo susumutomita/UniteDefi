@@ -2,7 +2,7 @@
 
 ## Overview
 
-This module provides event monitoring functionality for the 1inch Limit Order Protocol, tracking `OrderFilled` and `OrderCancelled` events on-chain.
+This module provides event monitoring functionality for the 1inch Limit Order Protocol. tracking `OrderFilled` and `OrderCancelled` events on-chain.
 
 ## Features
 

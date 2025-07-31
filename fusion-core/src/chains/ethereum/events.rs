@@ -1,5 +1,6 @@
+use crate::chains::ethereum::event_storage::{convert_to_stored_event, EventStorage};
 use ethers::{
-    contract::{EthEvent, Event},
+    contract::EthEvent,
     core::types::{Address, Filter, H256, U256},
     providers::{Middleware, Provider, StreamExt, Ws},
 };
@@ -7,7 +8,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, Duration};
-use crate::chains::ethereum::event_storage::{EventStorage, convert_to_stored_event};
 
 #[derive(Debug, Clone, EthEvent, Deserialize, Serialize)]
 #[ethevent(name = "OrderFilled", abi = "OrderFilled(bytes32,uint256)")]
@@ -56,7 +56,9 @@ impl LimitOrderEventMonitor {
         }
     }
 
-    pub async fn start_monitoring(&self) -> Result<mpsc::Receiver<LimitOrderEvent>, Box<dyn std::error::Error>> {
+    pub async fn start_monitoring(
+        &self,
+    ) -> Result<mpsc::Receiver<LimitOrderEvent>, Box<dyn std::error::Error>> {
         let (tx, rx) = mpsc::channel::<LimitOrderEvent>(100);
 
         // Start monitoring both events concurrently
@@ -75,15 +77,15 @@ impl LimitOrderEventMonitor {
 
             if let Ok(mut stream) = provider_filled.subscribe_logs(&filter).await {
                 while let Some(log) = stream.next().await {
-                    if log.topics.len() >= 1 && log.data.len() >= 32 {
-                        let order_hash = H256::from_slice(&log.topics[1].as_bytes());
+                    if !log.topics.is_empty() && log.data.len() >= 32 {
+                        let order_hash = H256::from_slice(log.topics[1].as_bytes());
                         let remaining_amount = U256::from_big_endian(&log.data[..32]);
-                        
+
                         let event = OrderFilledEvent {
                             order_hash,
                             remaining_amount,
                         };
-                        
+
                         let _ = tx_filled.send(LimitOrderEvent::OrderFilled(event)).await;
                     }
                 }
@@ -99,11 +101,13 @@ impl LimitOrderEventMonitor {
             if let Ok(mut stream) = provider_cancelled.subscribe_logs(&filter).await {
                 while let Some(log) = stream.next().await {
                     if log.topics.len() >= 2 {
-                        let order_hash = H256::from_slice(&log.topics[1].as_bytes());
-                        
+                        let order_hash = H256::from_slice(log.topics[1].as_bytes());
+
                         let event = OrderCancelledEvent { order_hash };
-                        
-                        let _ = tx_cancelled.send(LimitOrderEvent::OrderCancelled(event)).await;
+
+                        let _ = tx_cancelled
+                            .send(LimitOrderEvent::OrderCancelled(event))
+                            .await;
                     }
                 }
             }
@@ -118,19 +122,19 @@ impl LimitOrderEventMonitor {
         config: MonitorConfig,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut retries = 0;
-        
+
         loop {
             match self.start_monitoring().await {
                 Ok(mut rx) => {
                     retries = 0; // Reset retries on successful connection
-                    
+
                     while let Some(event) = rx.recv().await {
                         // Get current block information (mock for now)
                         let block_number = 0u64; // TODO: Get from provider
                         let timestamp = chrono::Utc::now().timestamp() as u64;
-                        
+
                         let stored_event = convert_to_stored_event(event, block_number, timestamp);
-                        
+
                         if let Err(e) = storage.save_event(stored_event).await {
                             eprintln!("Failed to save event: {}", e);
                         }
@@ -139,11 +143,11 @@ impl LimitOrderEventMonitor {
                 Err(e) => {
                     eprintln!("WebSocket connection failed: {}", e);
                     retries += 1;
-                    
+
                     if retries >= config.max_retries {
                         return Err("Max retries reached".into());
                     }
-                    
+
                     sleep(config.retry_delay).await;
                 }
             }
@@ -156,22 +160,22 @@ impl LimitOrderEventMonitor {
             .event("OrderFilled(bytes32,uint256)");
 
         let mut stream = self.provider.subscribe_logs(&filter).await?;
-        
+
         while let Some(log) = stream.next().await {
-            if log.topics.len() >= 1 && log.data.len() >= 32 {
-                let order_hash = H256::from_slice(&log.topics[1].as_bytes());
+            if !log.topics.is_empty() && log.data.len() >= 32 {
+                let order_hash = H256::from_slice(log.topics[1].as_bytes());
                 let remaining_amount = U256::from_big_endian(&log.data[..32]);
-                
+
                 let event = OrderFilledEvent {
                     order_hash,
                     remaining_amount,
                 };
-                
+
                 // Here we would save to database
                 println!("OrderFilled event: {:?}", event);
             }
         }
-        
+
         Ok(())
     }
 
@@ -181,18 +185,18 @@ impl LimitOrderEventMonitor {
             .event("OrderCancelled(bytes32)");
 
         let mut stream = self.provider.subscribe_logs(&filter).await?;
-        
+
         while let Some(log) = stream.next().await {
             if log.topics.len() >= 2 {
-                let order_hash = H256::from_slice(&log.topics[1].as_bytes());
-                
+                let order_hash = H256::from_slice(log.topics[1].as_bytes());
+
                 let event = OrderCancelledEvent { order_hash };
-                
+
                 // Here we would save to database
                 println!("OrderCancelled event: {:?}", event);
             }
         }
-        
+
         Ok(())
     }
 }
