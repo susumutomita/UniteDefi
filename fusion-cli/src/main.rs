@@ -4,6 +4,7 @@ use fusion_core::htlc::{generate_secret, hash_secret, Htlc, HtlcState};
 use serde_json::json;
 use std::time::Duration;
 
+mod near_order_handler;
 mod order_handler;
 mod storage;
 use once_cell::sync::Lazy;
@@ -42,6 +43,8 @@ struct OrderCommands {
 enum OrderSubcommands {
     /// Create a new limit order
     Create(order_handler::CreateOrderArgs),
+    /// Create a NEAR to Ethereum order
+    CreateNear(near_order_handler::CreateNearOrderArgs),
 }
 
 #[derive(Args)]
@@ -87,6 +90,7 @@ async fn main() -> Result<()> {
         Commands::Refund(args) => handle_refund(args).await,
         Commands::Order(order_cmd) => match order_cmd.command {
             OrderSubcommands::Create(args) => order_handler::handle_create_order(args).await,
+            OrderSubcommands::CreateNear(args) => near_order_handler::handle_create_near_order(args).await,
         },
     }
 }
