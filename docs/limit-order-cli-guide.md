@@ -125,6 +125,74 @@ Once signed, the order can be submitted to:
 3. **Address Validation**: The CLI validates all addresses are properly formatted
 4. **Amount Precision**: Ensure correct decimal places for token amounts
 
+## Relay Order Command
+
+The `relay-order` command enables manual relaying of limit orders from EVM chains to NEAR. This is essential for cross-chain atomic swaps before automated relayers are implemented.
+
+### Usage
+
+```bash
+fusion-cli relay-order [OPTIONS]
+```
+
+### Required Options
+
+- `--order-hash <HASH>` - The hash of the order created on EVM
+- `--to-chain <CHAIN>` - Target chain for relaying (currently only "near" is supported)
+- `--htlc-secret <SECRET>` - The HTLC secret (32 bytes in hex format)
+
+### Optional Options
+
+- `--near-account <ACCOUNT>` - NEAR account ID (defaults to environment variable)
+- `--evm-rpc <URL>` - EVM RPC endpoint
+- `--near-network <NETWORK>` - NEAR network: testnet or mainnet (default: testnet)
+
+### Example
+
+```bash
+fusion-cli relay-order \
+  --order-hash 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890 \
+  --to-chain near \
+  --htlc-secret 0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba \
+  --near-account alice.testnet \
+  --near-network testnet
+```
+
+### Output Format
+
+```json
+{
+  "status": "success",
+  "relay_details": {
+    "from_chain": "ethereum",
+    "to_chain": "near",
+    "order_hash": "0xabcdef..."
+  },
+  "htlc_info": {
+    "htlc_id": "htlc_12345678",
+    "secret_hash": "0x...",
+    "timeout_seconds": 3600,
+    "recipient": "alice.testnet"
+  },
+  "transactions": {
+    "near_htlc_creation": "0x...",
+    "explorer_url": "https://explorer.testnet.near.org/transactions/0x..."
+  },
+  "next_steps": [
+    "Monitor the order execution on Ethereum",
+    "Once the order is filled, the secret will be revealed",
+    "Use the secret to claim funds from the NEAR HTLC"
+  ]
+}
+```
+
+### Workflow
+
+1. **Create Order**: First create a limit order on EVM using `fusion-cli order create`
+2. **Relay Order**: Use this command to create a corresponding HTLC on NEAR
+3. **Monitor**: Watch for order execution on Ethereum
+4. **Claim**: Once filled, use the revealed secret to claim from NEAR HTLC
+
 ## Error Handling
 
 The CLI provides clear error messages for common issues:
@@ -133,9 +201,12 @@ The CLI provides clear error messages for common issues:
 - Incorrect secret hash length
 - Missing required parameters
 - Invalid hex encoding
+- Unsupported target chain
+- Invalid order hash format
 
 ## Related Commands
 
 - `fusion-cli create-htlc` - Create HTLC contracts
 - `fusion-cli claim` - Claim HTLC with secret
 - `fusion-cli refund` - Refund expired HTLC
+- `fusion-cli relay-order` - Relay orders from EVM to NEAR
