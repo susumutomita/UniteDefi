@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::Args;
 use fusion_core::eip712::OrderEIP712;
+use fusion_core::near_limit_order::HTLCData;
 use fusion_core::order::OrderBuilder;
 use serde_json::json;
 
@@ -49,6 +50,14 @@ pub struct CreateOrderArgs {
     /// Allowed sender address (optional)
     #[arg(long)]
     pub allowed_sender: Option<String>,
+
+    /// Recipient chain for HTLC (e.g., "near", "ethereum")
+    #[arg(long)]
+    pub recipient_chain: Option<String>,
+
+    /// Recipient address on the target chain
+    #[arg(long)]
+    pub recipient_address: Option<String>,
 }
 
 pub async fn handle_create_order(args: CreateOrderArgs) -> Result<()> {
@@ -74,8 +83,24 @@ pub async fn handle_create_order(args: CreateOrderArgs) -> Result<()> {
         return Err(anyhow!("HTLC secret hash must be exactly 32 bytes"));
     }
 
+    let mut secret_hash = [0u8; 32];
+    secret_hash.copy_from_slice(&secret_hash_bytes);
+
     // Create maker asset data with embedded HTLC info
-    let maker_asset_data = encode_htlc_data(&secret_hash_bytes, args.htlc_timeout);
+    let interactions_data =
+        if let (Some(chain), Some(address)) = (&args.recipient_chain, &args.recipient_address) {
+            // Use new HTLCData format with chain and address info
+            let htlc_data = HTLCData::new(
+                secret_hash,
+                args.htlc_timeout,
+                chain.clone(),
+                address.clone(),
+            )?;
+            htlc_data.to_hex()
+        } else {
+            // Use legacy format for backward compatibility
+            encode_htlc_data(&secret_hash_bytes, args.htlc_timeout)
+        };
 
     // Build order
     let mut builder = OrderBuilder::new()
@@ -84,7 +109,7 @@ pub async fn handle_create_order(args: CreateOrderArgs) -> Result<()> {
         .maker(&args.maker)
         .making_amount(args.making_amount)
         .taking_amount(args.taking_amount)
-        .interactions(&maker_asset_data);
+        .interactions(&interactions_data);
 
     if let Some(receiver) = args.receiver {
         builder = builder.receiver(&receiver);
@@ -124,6 +149,8 @@ pub async fn handle_create_order(args: CreateOrderArgs) -> Result<()> {
         "htlc_info": {
             "secret_hash": format!("0x{}", hex::encode(secret_hash_bytes)),
             "timeout_seconds": args.htlc_timeout,
+            "recipient_chain": args.recipient_chain,
+            "recipient_address": args.recipient_address,
         }
     });
 
