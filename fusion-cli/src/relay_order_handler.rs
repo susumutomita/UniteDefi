@@ -155,8 +155,8 @@ fn display_relay_results(
     order_info: &OrderInfo,
     htlc_result: &HTLCResult,
 ) -> Result<()> {
-    let output = json!({
-        "status": "success",
+    let mut output = json!({
+        "relay_status": "success",
         "relay_details": {
             "from_chain": "ethereum",
             "to_chain": args.to_chain,
@@ -186,6 +186,11 @@ fn display_relay_results(
             "Use the secret to claim funds from the NEAR HTLC",
         ]
     });
+
+    // Add near_account if provided
+    if let Some(ref near_account) = args.near_account {
+        output["near_account"] = json!(near_account);
+    }
 
     println!("{}", serde_json::to_string_pretty(&output)?);
     Ok(())

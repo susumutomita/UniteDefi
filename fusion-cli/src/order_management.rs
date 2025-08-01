@@ -128,7 +128,7 @@ pub async fn handle_orderbook(args: OrderbookArgs) -> Result<()> {
     if orders.is_empty() {
         let output = json!({
             "chain": args.chain,
-            "orderbook": [],
+            "orders": [],
             "message": format!("No orders found for chain: {}", args.chain)
         });
         println!("{}", serde_json::to_string_pretty(&output)?);
@@ -157,7 +157,7 @@ pub async fn handle_orderbook(args: OrderbookArgs) -> Result<()> {
 
     let output = json!({
         "chain": args.chain,
-        "orderbook": orders_json,
+        "orders": orders_json,
         "total_orders": orders_json.len(),
         "timestamp": chrono::Utc::now().to_rfc3339()
     });
