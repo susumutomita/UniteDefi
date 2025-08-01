@@ -6,6 +6,7 @@ use std::time::Duration;
 
 mod near_order_handler;
 mod order_handler;
+mod order_management;
 mod relay_order_handler;
 mod storage;
 use once_cell::sync::Lazy;
@@ -34,6 +35,8 @@ enum Commands {
     Order(Box<OrderCommands>),
     /// Relay an order from EVM to another chain
     RelayOrder(relay_order_handler::RelayOrderArgs),
+    /// Display orderbook for a specific chain
+    Orderbook(order_management::OrderbookArgs),
 }
 
 #[derive(Args)]
@@ -48,6 +51,10 @@ enum OrderSubcommands {
     Create(order_handler::CreateOrderArgs),
     /// Create a NEAR to Ethereum order
     CreateNear(near_order_handler::CreateNearOrderArgs),
+    /// Check order status
+    Status(order_management::StatusArgs),
+    /// Cancel an order
+    Cancel(order_management::CancelArgs),
 }
 
 #[derive(Args)]
@@ -96,8 +103,11 @@ async fn main() -> Result<()> {
             OrderSubcommands::CreateNear(args) => {
                 near_order_handler::handle_create_near_order(args).await
             }
+            OrderSubcommands::Status(args) => order_management::handle_order_status(args).await,
+            OrderSubcommands::Cancel(args) => order_management::handle_order_cancel(args).await,
         },
         Commands::RelayOrder(args) => relay_order_handler::handle_relay_order(args).await,
+        Commands::Orderbook(args) => order_management::handle_orderbook(args).await,
     }
 }
 
