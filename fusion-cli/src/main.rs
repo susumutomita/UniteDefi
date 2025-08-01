@@ -6,6 +6,7 @@ use std::time::Duration;
 
 mod near_order_handler;
 mod order_handler;
+mod relay_order_handler;
 mod storage;
 use once_cell::sync::Lazy;
 use storage::{HtlcStorage, StoredHtlc};
@@ -31,6 +32,8 @@ enum Commands {
     Refund(RefundArgs),
     /// Order commands
     Order(Box<OrderCommands>),
+    /// Relay an order from EVM to another chain
+    RelayOrder(relay_order_handler::RelayOrderArgs),
 }
 
 #[derive(Args)]
@@ -94,6 +97,7 @@ async fn main() -> Result<()> {
                 near_order_handler::handle_create_near_order(args).await
             }
         },
+        Commands::RelayOrder(args) => relay_order_handler::handle_relay_order(args).await,
     }
 }
 
