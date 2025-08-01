@@ -6,19 +6,26 @@ help:
 	@echo "  make install       - Install Node.js dependencies and check Rust"
 	@echo "  make lint          - Run all linters (Markdown, Rust, YAML)"
 	@echo "  make lint_md       - Run textlint on markdown files"
-	@echo "  make lint_rust     - Run cargo clippy on Rust code"
+	@echo "  make lint_rust     - Run cargo clippy on workspace"
+	@echo "  make lint_rust_near - Run cargo clippy on NEAR contracts"
 	@echo "  make lint_yaml     - Run yamllint on YAML files"
 	@echo "  make lint_fix      - Fix all auto-fixable lint issues"
 	@echo "  make lint_fix_md   - Fix textlint errors"
 	@echo "  make lint_fix_rust - Fix clippy warnings"
-	@echo "  make test          - Run all tests (Rust + TypeScript)"
+	@echo "  make test          - Run workspace tests"
+	@echo "  make test_near     - Run NEAR contract tests"
+	@echo "  make test_all      - Run all tests (workspace + NEAR)"
 	@echo "  make test_security - Run security-focused tests"
 	@echo "  make test_coverage - Run tests with coverage report"
 	@echo "  make test_coverage_html - Run tests with HTML coverage report"
 	@echo "  make coverage_open - Open HTML coverage report in browser"
-	@echo "  make format        - Format Rust code"
-	@echo "  make format_check  - Check Rust code formatting"
-	@echo "  make before_commit - Run all checks before commit"
+	@echo "  make format        - Format workspace Rust code"
+	@echo "  make format_near   - Format NEAR contract code"
+	@echo "  make format_all    - Format all Rust code"
+	@echo "  make format_check  - Check workspace Rust code formatting"
+	@echo "  make format_check_near - Check NEAR contract formatting"
+	@echo "  make format_check_all - Check all Rust code formatting"
+	@echo "  make before_commit - Run all checks before commit (workspace only)"
 
 PNPM_RUN_TARGETS = preview
 
@@ -33,6 +40,9 @@ lint_md:
 lint_rust:
 	@echo "Running clippy on workspace..."
 	cargo clippy --all-targets --all-features -- -D warnings
+
+.PHONY: lint_rust_near
+lint_rust_near:
 	@echo "Running clippy on NEAR HTLC..."
 	cd contracts/near-htlc && cargo clippy --all-targets --all-features -- -D warnings
 
@@ -66,12 +76,20 @@ lint_fix: lint_fix_md lint_fix_rust
 test:
 	@echo "Running Rust tests..."
 	cargo test --workspace
+	@echo "All workspace tests completed!"
+
+.PHONY: test_near
+test_near:
 	@echo "Running NEAR HTLC specific tests..."
 	cd contracts/near-htlc && cargo test
 	@echo "Running TypeScript tests..."
 	@if [ -f contracts/near-htlc/package.json ]; then \
 		cd contracts/near-htlc && npm test 2>/dev/null || echo "No TypeScript tests found"; \
 	fi
+	@echo "All NEAR tests completed!"
+
+.PHONY: test_all
+test_all: test test_near
 	@echo "All tests completed!"
 
 .PHONY: test_security
@@ -105,15 +123,31 @@ coverage_open:
 format:
 	@echo "Formatting Rust code..."
 	cargo fmt --all
+	@echo "All workspace formatting completed!"
+
+.PHONY: format_near
+format_near:
 	@echo "Formatting NEAR HTLC code..."
 	cd contracts/near-htlc && cargo fmt
+	@echo "NEAR formatting completed!"
+
+.PHONY: format_all
+format_all: format format_near
 	@echo "All formatting completed!"
 
 .PHONY: format_check
 format_check:
 	@echo "Checking Rust formatting..."
 	cargo fmt --all -- --check
+
+.PHONY: format_check_near
+format_check_near:
+	@echo "Checking NEAR HTLC formatting..."
 	cd contracts/near-htlc && cargo fmt -- --check
+
+.PHONY: format_check_all
+format_check_all: format_check format_check_near
+	@echo "All format checks completed!"
 
 setup_husky:
 	pnpm run husky
