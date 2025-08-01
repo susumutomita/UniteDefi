@@ -1,5 +1,7 @@
 pub mod ethereum;
 pub mod near;
+pub mod near_events;
+pub mod near_monitor;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Chain {
