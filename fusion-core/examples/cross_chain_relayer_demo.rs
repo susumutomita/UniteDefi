@@ -1,15 +1,17 @@
 //! クロスチェーンリレイヤーのデモ
 
 use fusion_core::{
-    automated_executor::{AutomatedExecutor, ExecutionTask, RetryConfig, StandardExecutionEngine, TaskStatus},
+    automated_executor::{
+        AutomatedExecutor, ExecutionTask, RetryConfig, StandardExecutionEngine, TaskStatus,
+    },
     cross_chain_executor::CrossChainExecutor,
     enhanced_price_oracle::{AggregationStrategy, EnhancedPriceOracle},
-    execution_path_optimizer::{ExecutionPath, ExecutionPathOptimizer, OptimizationParams, OptimizationPriority, Route},
+    execution_path_optimizer::{
+        ExecutionPath, ExecutionPathOptimizer, OptimizationParams, OptimizationPriority, Route,
+    },
     order_matching_engine::{OrderMatch, OrderMatchingEngine, OrderType, PendingOrder},
-    price_oracle::MockPriceOracle,
+    price_oracle::{MockPriceOracle, PriceOracle},
 };
-use std::time::Duration;
-use tokio::time::sleep;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -17,13 +19,13 @@ async fn main() -> anyhow::Result<()> {
 
     // 1. オーダーマッチングのデモ
     demo_order_matching()?;
-    
+
     // 2. 価格オラクル統合のデモ
     demo_price_oracle().await?;
-    
+
     // 3. 実行パス最適化のデモ
     demo_path_optimization()?;
-    
+
     // 4. 自動実行のデモ
     demo_automated_execution().await?;
 
@@ -44,7 +46,7 @@ fn demo_order_matching() -> anyhow::Result<()> {
             token_pair: "NEAR/USDC".to_string(),
             order_type: OrderType::Buy,
             price: 5.5,
-            amount: 2000_000_000_000_000_000_000_000_000,
+            amount: 2_000_000_000_000_000_000_000_000_000,
             timestamp: 1234567890,
         },
         PendingOrder {
@@ -53,7 +55,7 @@ fn demo_order_matching() -> anyhow::Result<()> {
             token_pair: "NEAR/USDC".to_string(),
             order_type: OrderType::Sell,
             price: 5.0,
-            amount: 1500_000_000_000_000_000_000_000_000,
+            amount: 1_500_000_000_000_000_000_000_000_000,
             timestamp: 1234567891,
         },
         PendingOrder {
@@ -62,14 +64,15 @@ fn demo_order_matching() -> anyhow::Result<()> {
             token_pair: "NEAR/USDC".to_string(),
             order_type: OrderType::Buy,
             price: 5.3,
-            amount: 1000_000_000_000_000_000_000_000_000,
+            amount: 1_000_000_000_000_000_000_000_000_000,
             timestamp: 1234567892,
         },
     ];
 
     for order in orders {
-        println!("  追加: {} {} {} @ ${}", 
-            order.chain_id, 
+        println!(
+            "  追加: {} {} {} @ ${}",
+            order.chain_id,
             match order.order_type {
                 OrderType::Buy => "買い",
                 OrderType::Sell => "売り",
@@ -83,7 +86,8 @@ fn demo_order_matching() -> anyhow::Result<()> {
     let matches = engine.find_matches("NEAR/USDC");
     println!("\n  マッチング結果:");
     for m in &matches {
-        println!("    {} <-> {}: 価格 ${:.2}, 数量 {}, 利益 {:.2}%",
+        println!(
+            "    {} <-> {}: 価格 ${:.2}, 数量 {}, 利益 {:.2}%",
             m.buy_order_id,
             m.sell_order_id,
             m.match_price,
@@ -100,10 +104,7 @@ async fn demo_price_oracle() -> anyhow::Result<()> {
     println!("2. 価格オラクル統合のデモ");
     println!("========================");
 
-    let mut oracle = EnhancedPriceOracle::new(
-        AggregationStrategy::WeightedAverage,
-        300,
-    );
+    let mut oracle = EnhancedPriceOracle::new(AggregationStrategy::WeightedAverage, 300);
 
     // 複数の価格ソースをシミュレート
     for i in 0..3 {
@@ -119,7 +120,7 @@ async fn demo_price_oracle() -> anyhow::Result<()> {
     // 複数トークンの価格を取得
     let tokens = ["NEAR", "ETH", "USDC"];
     let prices = oracle.get_prices(&tokens).await?;
-    
+
     println!("\n  複数トークンの価格:");
     for (token, price_data) in prices {
         println!("    {}: ${:.2}", token, price_data.price);
@@ -179,7 +180,7 @@ fn demo_path_optimization() -> anyhow::Result<()> {
         "ethereum",
         "near",
         "USDC",
-        5000_000_000, // 5000 USDC
+        5_000_000_000, // 5000 USDC
         &params,
     )?;
 
@@ -189,7 +190,7 @@ fn demo_path_optimization() -> anyhow::Result<()> {
         println!("       コスト: ${:.2}", path.total_cost);
         println!("       時間: {}分", path.total_time / 60);
         println!("       リスクスコア: {}/100", path.risk_score);
-        
+
         for step in &path.steps {
             println!("       - {} → {}", step.source_chain, step.target_chain);
         }
@@ -225,7 +226,7 @@ async fn demo_automated_execution() -> anyhow::Result<()> {
             buy_order_id: "eth_buy_001".to_string(),
             sell_order_id: "near_sell_001".to_string(),
             match_price: 5.25,
-            match_amount: 1000_000_000_000_000_000_000_000_000,
+            match_amount: 1_000_000_000_000_000_000_000_000_000,
             profit_bps: 250,
         },
         execution_path: ExecutionPath {
@@ -245,7 +246,7 @@ async fn demo_automated_execution() -> anyhow::Result<()> {
     executor.add_task(task)?;
 
     println!("  タスクを追加しました");
-    
+
     // ステータスサマリーを表示
     let summary = executor.get_status_summary();
     println!("\n  実行ステータス:");

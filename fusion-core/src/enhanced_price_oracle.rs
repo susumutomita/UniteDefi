@@ -1,5 +1,5 @@
 //! 拡張価格オラクル統合
-//! 
+//!
 //! 複数の価格ソースを統合し、信頼性の高い価格情報を提供します。
 
 use anyhow::{anyhow, Result};
@@ -44,8 +44,6 @@ pub enum AggregationStrategy {
     WeightedAverage,
     /// 最も信頼性の高いソースを使用
     MostTrusted,
-    /// カスタム戦略
-    Custom(Box<dyn Fn(&[EnhancedPriceData]) -> PriceData + Send + Sync>),
 }
 
 /// 拡張価格オラクル
@@ -112,9 +110,6 @@ impl EnhancedPriceOracle {
             AggregationStrategy::Median => self.calculate_median(&prices),
             AggregationStrategy::WeightedAverage => self.calculate_weighted_average(&prices),
             AggregationStrategy::MostTrusted => self.select_most_trusted(&prices),
-            AggregationStrategy::Custom(func) => {
-                func(&prices)
-            }
         };
 
         Ok(EnhancedPriceData {
@@ -184,7 +179,8 @@ impl EnhancedPriceOracle {
         let variance: f64 = prices
             .iter()
             .map(|p| (p.base.price - mean).powi(2))
-            .sum::<f64>() / prices.len() as f64;
+            .sum::<f64>()
+            / prices.len() as f64;
 
         variance.sqrt()
     }
@@ -195,11 +191,12 @@ impl EnhancedPriceOracle {
             return 0.0;
         }
 
-        let avg_confidence: f64 = prices.iter().map(|p| p.base.confidence).sum::<f64>() / prices.len() as f64;
-        
+        let avg_confidence: f64 =
+            prices.iter().map(|p| p.base.confidence).sum::<f64>() / prices.len() as f64;
+
         // 複数ソースがある場合、信頼度を上げる
         let source_multiplier = (1.0 + (prices.len() as f64 - 1.0) * 0.1).min(1.2);
-        
+
         (avg_confidence * source_multiplier).min(1.0)
     }
 
@@ -330,10 +327,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_aggregation_median() {
-        let mut enhanced_oracle = EnhancedPriceOracle::new(
-            AggregationStrategy::Median,
-            300,
-        );
+        let mut enhanced_oracle = EnhancedPriceOracle::new(AggregationStrategy::Median, 300);
 
         // 複数のモックオラクルを追加
         for i in 0..3 {
@@ -348,10 +342,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_aggregation_weighted_average() {
-        let enhanced_oracle = EnhancedPriceOracle::new(
-            AggregationStrategy::WeightedAverage,
-            300,
-        );
+        let enhanced_oracle = EnhancedPriceOracle::new(AggregationStrategy::WeightedAverage, 300);
 
         let prices = vec![
             EnhancedPriceData {
@@ -395,7 +386,7 @@ mod tests {
 
         // 初回取得
         let price1 = enhanced_oracle.get_price("NEAR").await.unwrap();
-        
+
         // キャッシュから取得（同じ値）
         let price2 = enhanced_oracle.get_price("NEAR").await.unwrap();
         assert_eq!(price1.price, price2.price);
@@ -436,21 +427,26 @@ mod tests {
 
     #[tokio::test]
     async fn test_volatility_calculation() {
-        let enhanced_oracle = EnhancedPriceOracle::new(
-            AggregationStrategy::Median,
-            300,
-        );
+        let enhanced_oracle = EnhancedPriceOracle::new(AggregationStrategy::Median, 300);
 
         let prices = vec![
             EnhancedPriceData {
-                base: PriceData { price: 4.0, timestamp: 0, confidence: 0.9 },
+                base: PriceData {
+                    price: 4.0,
+                    timestamp: 0,
+                    confidence: 0.9,
+                },
                 source: "S1".to_string(),
                 change_24h: 0.0,
                 volatility: 0.0,
                 liquidity_depth: None,
             },
             EnhancedPriceData {
-                base: PriceData { price: 6.0, timestamp: 0, confidence: 0.9 },
+                base: PriceData {
+                    price: 6.0,
+                    timestamp: 0,
+                    confidence: 0.9,
+                },
                 source: "S2".to_string(),
                 change_24h: 0.0,
                 volatility: 0.0,

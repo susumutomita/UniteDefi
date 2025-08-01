@@ -2,9 +2,13 @@
 members = [ 
     "fusion-cli",
     "fusion-core",
-    "contracts/near-htlc",
-    "contracts/near-htlc/test-token",
 ]
+# NEAR contracts excluded from main workspace due to build constraints
+# Build separately with: cd contracts/near-htlc && cargo near build
+# exclude = [
+#     "contracts/near-htlc",
+#     "contracts/near-htlc/test-token",
+# ]
 resolver = "2"
 
 [workspace.package]

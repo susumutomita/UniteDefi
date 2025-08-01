@@ -51,43 +51,55 @@ This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethe
 git clone https://github.com/susumutomita/UniteDefi.git
 cd UniteDefi
 
-# Install dependencies
-cargo build --release
+# Build the CLI
+cargo build -p fusion-cli --release
 
-# Install the CLI globally
-cargo install --path .
+# Install the CLI globally (optional)
+cargo install --path fusion-cli
+
+# Or run directly from target directory
+./target/release/fusion-cli --help
 ```
 
 ### Basic Usage
+
+#### HTLC Operations
 ```bash
-# Initialize configuration
-fusion-cli init
+# Create a new HTLC
+fusion-cli create-htlc \
+  --sender 0x1234567890123456789012345678901234567890 \
+  --recipient 0x9876543210987654321098765432109876543210 \
+  --amount 1000
 
-# Create a swap from Ethereum to NEAR
-fusion-cli swap create \
-  --from ethereum \
-  --to near \
-  --amount 100 \
-  --token USDC \
-  --recipient near-account.near
+# Claim an HTLC with secret
+fusion-cli claim \
+  --htlc-id htlc_6c2c0d83023b6dba \
+  --secret 27eddfe62b6a8a7787b2bfe30694d334500ed8f134b5f3f9b7a047605c7a9518
 
-# Monitor swap progress
-fusion-cli swap status --id <swap-id>
+# Refund an HTLC after timeout
+fusion-cli refund --htlc-id htlc_6c2c0d83023b6dba
+```
 
-# Complete swap (automatic when conditions are met)
-fusion-cli swap complete --id <swap-id>
-
-# Create a limit order
+#### Limit Order Operations
+```bash
+# Create a limit order (Ethereum/Base)
 fusion-cli order create \
   --maker-asset 0x4200000000000000000000000000000000000006 \
   --taker-asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
   --maker 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
   --making-amount 1000000000000000000 \
   --taking-amount 3000000000 \
-  --htlc-secret-hash <hash> \
+  --htlc-secret-hash 0x6c2c0d83023b6dba52903a91952ab0cde4a0ce554d80a9f07ec815e54438a263 \
   --htlc-timeout 3600 \
   --chain-id 84532 \
   --verifying-contract 0x171C87724E720F2806fc29a010a62897B30fdb62
+
+# Create a NEAR to Ethereum order
+fusion-cli order create-near \
+  --near-account alice.near \
+  --ethereum-address 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
+  --near-amount 1000000000000000000000000 \
+  --secret-hash 0x6c2c0d83023b6dba52903a91952ab0cde4a0ce554d80a9f07ec815e54438a263
 
 # Check order status
 fusion-cli order status --order-id <order-id>
@@ -97,6 +109,15 @@ fusion-cli order cancel --order-id <order-id>
 
 # View orderbook for a specific chain
 fusion-cli orderbook --chain ethereum
+```
+
+#### Cross-Chain Operations
+```bash
+# Relay an order from EVM to another chain
+fusion-cli relay-order \
+  --order-hash 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef \
+  --to-chain near \
+  --htlc-secret 0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba
 ```
 
 ## 📋 Hackathon Requirements Checklist
@@ -161,31 +182,31 @@ pub trait HTLCContract {
 
 ### Run Tests
 ```bash
-# Unit tests
-cargo test
+# Unit tests (workspace only)
+cargo test --workspace
 
-# Integration tests
-cargo test --features integration
+# CLI integration tests
+cargo test -p fusion-cli
 
-# Specific chain tests
-cargo test --package near-htlc
-cargo test --package cosmos-htlc
-cargo test --package stellar-htlc
+# Core functionality tests
+cargo test -p fusion-core
+
+# NEAR contract tests (separate build)
+cd contracts/near-htlc && cargo test
 ```
 
 ### Testnet Deployments
-- **Ethereum**: Sepolia testnet
-- **NEAR**: Testnet (testnet.near.org)
-- **Cosmos**: Cosmos testnet
-- **Stellar**: Stellar testnet
+- **Ethereum**: Sepolia testnet - 1inch Limit Order Protocol integration
+- **NEAR**: Testnet (testnet.near.org) - Custom HTLC contracts
+- **Base**: Base Sepolia testnet - Default deployment target
 
 ## 📊 Performance Metrics
 
-| Metric | Ethereum | NEAR | Cosmos | Stellar |
-|--------|----------|------|--------|---------|
-| Avg Swap Time | 15s | 2s | 6s | 5s |
-| Gas Cost | $5-20 | <$0.01 | <$0.01 | <$0.01 |
-| Finality | 12 blocks | 2 blocks | 1 block | 1 ledger |
+| Metric | Ethereum | NEAR | Base |
+|--------|----------|------|------|
+| Avg Swap Time | 15s | 2s | 5s |
+| Gas Cost | $5-20 | <$0.01 | $0.10-1 |
+| Finality | 12 blocks | 2 blocks | 2 blocks |
 
 ## 📚 Documentation
 
@@ -201,23 +222,20 @@ cargo test --package stellar-htlc
 
 ## 🏗️ Project Structure
 ```
-fusion-plus-rust-gateway/
-├── src/
-│   ├── core/           # Core HTLC logic
-│   ├── chains/         # Chain-specific implementations
-│   │   ├── ethereum/
-│   │   ├── near/
-│   │   ├── cosmos/
-│   │   └── stellar/
-│   ├── cli/            # CLI interface
-│   └── relayer/        # Relayer service
-├── contracts/          # Smart contracts
-│   ├── ethereum/       # Solidity contracts
-│   ├── near/          # NEAR contracts
-│   ├── cosmos/        # CosmWasm contracts
-│   └── stellar/       # Stellar contracts
-├── tests/             # Test suites
-└── docs/              # Documentation
+UniteDefi/
+├── fusion-cli/         # CLI implementation
+│   ├── src/           # CLI source code
+│   └── tests/         # CLI integration tests
+├── fusion-core/       # Core HTLC and cross-chain logic
+│   ├── src/           # Core functionality
+│   ├── tests/         # Unit and integration tests
+│   └── examples/      # Usage examples
+├── contracts/         # Smart contracts
+│   └── near-htlc/     # NEAR HTLC implementation
+│       ├── src/       # Contract source
+│       └── tests/     # Contract tests
+├── docs/              # Documentation
+└── Cargo.toml         # Workspace configuration
 ```
 
 ## 🔐 Security Considerations

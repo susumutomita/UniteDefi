@@ -1,12 +1,16 @@
 //! クロスチェーンリレイヤー統合テスト
 
 use fusion_core::{
-    automated_executor::{AutomatedExecutor, ExecutionTask, RetryConfig, StandardExecutionEngine, TaskStatus},
+    automated_executor::{
+        AutomatedExecutor, ExecutionTask, RetryConfig, StandardExecutionEngine, TaskStatus,
+    },
     cross_chain_executor::CrossChainExecutor,
     enhanced_price_oracle::{AggregationStrategy, EnhancedPriceOracle},
-    execution_path_optimizer::{ExecutionPath, ExecutionPathOptimizer, OptimizationParams, OptimizationPriority, Route},
-    order_matching_engine::{OrderMatchingEngine, OrderType, PendingOrder},
-    price_oracle::MockPriceOracle,
+    execution_path_optimizer::{
+        ExecutionPath, ExecutionPathOptimizer, OptimizationParams, OptimizationPriority, Route,
+    },
+    order_matching_engine::{OrderMatch, OrderMatchingEngine, OrderType, PendingOrder},
+    price_oracle::{MockPriceOracle, PriceOracle},
 };
 
 #[tokio::test]
@@ -21,7 +25,7 @@ async fn test_end_to_end_order_matching_and_execution() {
         token_pair: "NEAR/USDC".to_string(),
         order_type: OrderType::Buy,
         price: 5.2,
-        amount: 1000_000_000_000_000_000_000_000_000, // 1000 NEAR
+        amount: 1_000_000_000_000_000_000_000_000_000, // 1000 NEAR
         timestamp: 1234567890,
     };
 
@@ -32,7 +36,7 @@ async fn test_end_to_end_order_matching_and_execution() {
         token_pair: "NEAR/USDC".to_string(),
         order_type: OrderType::Sell,
         price: 5.0,
-        amount: 1000_000_000_000_000_000_000_000_000, // 1000 NEAR
+        amount: 1_000_000_000_000_000_000_000_000_000, // 1000 NEAR
         timestamp: 1234567891,
     };
 
@@ -56,14 +60,14 @@ async fn test_end_to_end_order_matching_and_execution() {
 
     // 3. 実行パスオプティマイザーのセットアップ
     let mut path_optimizer = ExecutionPathOptimizer::new();
-    
+
     // Ethereum → NEAR ルートを追加
     path_optimizer.add_route(Route {
         source_chain: "ethereum".to_string(),
         target_chain: "near".to_string(),
         protocol: "rainbow_bridge".to_string(),
         base_cost: 15.0,
-        base_time: 600, // 10分
+        base_time: 600,          // 10分
         liquidity: 10_000_000.0, // $10M
     });
 
@@ -75,13 +79,15 @@ async fn test_end_to_end_order_matching_and_execution() {
         priority: OptimizationPriority::MinimizeCost,
     };
 
-    let paths = path_optimizer.find_optimal_path(
-        "ethereum",
-        "near",
-        "USDC",
-        5000_000_000, // 5000 USDC
-        &optimization_params,
-    ).unwrap();
+    let paths = path_optimizer
+        .find_optimal_path(
+            "ethereum",
+            "near",
+            "USDC",
+            5_000_000_000, // 5000 USDC
+            &optimization_params,
+        )
+        .unwrap();
 
     assert!(!paths.is_empty());
     let best_path = &paths[0];
@@ -91,7 +97,8 @@ async fn test_end_to_end_order_matching_and_execution() {
         "https://eth-sepolia.example.com",
         "0x0000000000000000000000000000000000000000",
         "https://rpc.testnet.near.org",
-    ).unwrap();
+    )
+    .unwrap();
 
     let execution_engine = Box::new(StandardExecutionEngine::new(cross_chain_executor));
     let retry_config = RetryConfig::default();
@@ -175,10 +182,10 @@ fn test_order_matching_with_multiple_orders() {
     }
 
     let matches = engine.find_matches("NEAR/USDC");
-    
+
     // 複数のマッチが見つかることを確認
-    assert!(matches.len() > 0);
-    
+    assert!(!matches.is_empty());
+
     // 最も利益の高いマッチを確認
     let best_match = matches.iter().max_by_key(|m| m.profit_bps).unwrap();
     assert!(best_match.profit_bps >= 200); // 少なくとも2%の利益
@@ -227,13 +234,9 @@ fn test_execution_path_with_constraints() {
         priority: OptimizationPriority::MinimizeCost,
     };
 
-    let cost_optimal_paths = optimizer.find_optimal_path(
-        "ethereum",
-        "near",
-        "USDC",
-        1000_000_000,
-        &cost_params,
-    ).unwrap();
+    let cost_optimal_paths = optimizer
+        .find_optimal_path("ethereum", "near", "USDC", 1_000_000_000, &cost_params)
+        .unwrap();
 
     // 最もコストが低いパスが最初に来ることを確認
     assert!(cost_optimal_paths[0].total_cost < 50.0);
@@ -247,13 +250,9 @@ fn test_execution_path_with_constraints() {
         priority: OptimizationPriority::MinimizeTime,
     };
 
-    let time_optimal_paths = optimizer.find_optimal_path(
-        "ethereum",
-        "near",
-        "USDC",
-        1000_000_000,
-        &time_params,
-    ).unwrap();
+    let time_optimal_paths = optimizer
+        .find_optimal_path("ethereum", "near", "USDC", 1_000_000_000, &time_params)
+        .unwrap();
 
     // 最も時間が短いパスが最初に来ることを確認
     assert!(time_optimal_paths[0].total_time <= 360);
@@ -272,15 +271,12 @@ async fn test_automated_executor_retry_logic() {
         "https://eth.example.com",
         "0x0000000000000000000000000000000000000000",
         "https://near.example.com",
-    ).unwrap();
+    )
+    .unwrap();
 
     let execution_engine = Box::new(StandardExecutionEngine::new(cross_chain_executor));
-    
-    let mut automated_executor = AutomatedExecutor::new(
-        execution_engine,
-        3,
-        retry_config,
-    );
+
+    let mut automated_executor = AutomatedExecutor::new(execution_engine, 3, retry_config);
 
     // ダミータスクを作成
     let task = ExecutionTask {

@@ -1,15 +1,15 @@
 //! 自動実行エンジン
-//! 
+//!
 //! クロスチェーントランザクションを自動的に実行し、監視します。
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::time::interval;
 
-use crate::cross_chain_executor::{CrossChainExecutor, ExecutionParams, ExecutionState};
-use crate::execution_path_optimizer::{ExecutionPath, ExecutionStep, StepType};
+use crate::cross_chain_executor::CrossChainExecutor;
+use crate::execution_path_optimizer::{ExecutionPath, StepType};
 use crate::order_matching_engine::OrderMatch;
 
 /// 自動実行タスク
@@ -42,14 +42,9 @@ pub enum TaskStatus {
         step_status: StepStatus,
     },
     /// 完了
-    Completed {
-        tx_hashes: Vec<String>,
-    },
+    Completed { tx_hashes: Vec<String> },
     /// 失敗
-    Failed {
-        reason: String,
-        retry_count: u8,
-    },
+    Failed { reason: String, retry_count: u8 },
     /// キャンセル済み
     Cancelled,
 }
@@ -72,10 +67,10 @@ pub enum StepStatus {
 pub trait ExecutionEngine: Send + Sync {
     /// タスクを実行
     async fn execute_task(&mut self, task: &ExecutionTask) -> Result<TaskStatus>;
-    
+
     /// タスクの進捗を取得
     async fn get_task_progress(&self, task_id: &str) -> Result<TaskStatus>;
-    
+
     /// タスクをキャンセル
     async fn cancel_task(&mut self, task_id: &str) -> Result<()>;
 }
@@ -118,6 +113,7 @@ impl Default for RetryConfig {
 /// 標準実行エンジン
 pub struct StandardExecutionEngine {
     /// クロスチェーン実行器
+    #[allow(dead_code)]
     cross_chain_executor: CrossChainExecutor,
     /// 実行ログ
     execution_log: Vec<ExecutionLog>,
@@ -125,6 +121,7 @@ pub struct StandardExecutionEngine {
 
 /// 実行ログ
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct ExecutionLog {
     /// タイムスタンプ
     timestamp: u64,
@@ -138,6 +135,7 @@ struct ExecutionLog {
 
 /// ログレベル
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum LogLevel {
     Info,
     Warning,
@@ -226,7 +224,7 @@ impl ExecutionEngine for StandardExecutionEngine {
         Ok(TaskStatus::Completed { tx_hashes })
     }
 
-    async fn get_task_progress(&self, task_id: &str) -> Result<TaskStatus> {
+    async fn get_task_progress(&self, _task_id: &str) -> Result<TaskStatus> {
         // 仮実装：実際にはトランザクションの状態を確認
         Ok(TaskStatus::Pending)
     }
@@ -305,7 +303,10 @@ impl AutomatedExecutor {
                 }
 
                 // アクティブタスクに追加
-                self.active_tasks.lock().unwrap().insert(task.id.clone(), task);
+                self.active_tasks
+                    .lock()
+                    .unwrap()
+                    .insert(task.id.clone(), task);
             }
 
             // 完了/失敗タスクの処理
@@ -347,19 +348,19 @@ impl AutomatedExecutor {
 
         // リトライタスクを再キュー
         for mut task in tasks_to_retry {
-            if let TaskStatus::Failed { retry_count, .. } = &mut task.status {
-                *retry_count += 1;
-                task.status = TaskStatus::Pending;
-                
+            if let TaskStatus::Failed { retry_count, .. } = &task.status {
+                let new_retry_count = retry_count + 1;
+
                 // リトライ遅延を適用
                 let delay = if self.retry_config.exponential_backoff {
-                    self.retry_config.retry_delay * 2u64.pow(*retry_count as u32)
+                    self.retry_config.retry_delay * 2u64.pow(new_retry_count as u32)
                 } else {
                     self.retry_config.retry_delay
                 };
-                
+
                 tokio::time::sleep(Duration::from_secs(delay)).await;
-                
+
+                task.status = TaskStatus::Pending;
                 self.add_task(task).unwrap();
             }
         }
@@ -377,29 +378,29 @@ impl AutomatedExecutor {
     /// 全タスクのステータスサマリーを取得
     pub fn get_status_summary(&self) -> HashMap<String, usize> {
         let mut summary = HashMap::new();
-        
+
         let queue_count = self.task_queue.lock().unwrap().len();
         summary.insert("pending".to_string(), queue_count);
-        
+
         let active_tasks = self.active_tasks.lock().unwrap();
         let executing_count = active_tasks
             .values()
             .filter(|t| matches!(t.status, TaskStatus::Executing { .. }))
             .count();
         summary.insert("executing".to_string(), executing_count);
-        
+
         let completed_count = active_tasks
             .values()
             .filter(|t| matches!(t.status, TaskStatus::Completed { .. }))
             .count();
         summary.insert("completed".to_string(), completed_count);
-        
+
         let failed_count = active_tasks
             .values()
             .filter(|t| matches!(t.status, TaskStatus::Failed { .. }))
             .count();
         summary.insert("failed".to_string(), failed_count);
-        
+
         summary
     }
 }
@@ -408,6 +409,7 @@ impl AutomatedExecutor {
 mod tests {
     use super::*;
     use crate::cross_chain_executor::CrossChainExecutor;
+    use crate::execution_path_optimizer::ExecutionStep;
 
     #[test]
     fn test_task_creation() {
@@ -452,7 +454,8 @@ mod tests {
             "https://eth.example.com",
             "0x0000000000000000000000000000000000000000",
             "https://near.example.com",
-        ).unwrap();
+        )
+        .unwrap();
 
         let mut engine = StandardExecutionEngine::new(cross_chain_executor);
 
@@ -467,17 +470,15 @@ mod tests {
             },
             execution_path: ExecutionPath {
                 id: "path1".to_string(),
-                steps: vec![
-                    ExecutionStep {
-                        step_type: StepType::Bridge,
-                        source_chain: "ethereum".to_string(),
-                        target_chain: "near".to_string(),
-                        token: "USDC".to_string(),
-                        amount: 1000,
-                        estimated_cost: 10.0,
-                        estimated_time: 300,
-                    },
-                ],
+                steps: vec![ExecutionStep {
+                    step_type: StepType::Bridge,
+                    source_chain: "ethereum".to_string(),
+                    target_chain: "near".to_string(),
+                    token: "USDC".to_string(),
+                    amount: 1000,
+                    estimated_cost: 10.0,
+                    estimated_time: 300,
+                }],
                 total_cost: 10.0,
                 total_time: 300,
                 risk_score: 20,
@@ -490,7 +491,7 @@ mod tests {
         };
 
         let result = engine.execute_task(&task).await.unwrap();
-        
+
         match result {
             TaskStatus::Completed { tx_hashes } => {
                 assert!(!tx_hashes.is_empty());
@@ -506,13 +507,14 @@ mod tests {
             "https://eth.example.com",
             "0x0000000000000000000000000000000000000000",
             "https://near.example.com",
-        ).unwrap();
+        )
+        .unwrap();
 
         let engine = Box::new(StandardExecutionEngine::new(cross_chain_executor));
         let retry_config = RetryConfig::default();
 
         let executor = AutomatedExecutor::new(engine, 5, retry_config);
-        
+
         assert_eq!(executor.max_concurrent_tasks, 5);
     }
 
@@ -525,9 +527,12 @@ mod tests {
             current_step: 1,
             step_status: StepStatus::InProgress,
         };
-        
+
         match status {
-            TaskStatus::Executing { current_step, step_status } => {
+            TaskStatus::Executing {
+                current_step,
+                step_status,
+            } => {
                 assert_eq!(current_step, 1);
                 assert_eq!(step_status, StepStatus::InProgress);
             }
@@ -538,9 +543,12 @@ mod tests {
             reason: "Test error".to_string(),
             retry_count: 2,
         };
-        
+
         match status {
-            TaskStatus::Failed { reason, retry_count } => {
+            TaskStatus::Failed {
+                reason,
+                retry_count,
+            } => {
                 assert_eq!(reason, "Test error");
                 assert_eq!(retry_count, 2);
             }
@@ -554,13 +562,14 @@ mod tests {
             "https://eth.example.com",
             "0x0000000000000000000000000000000000000000",
             "https://near.example.com",
-        ).unwrap();
+        )
+        .unwrap();
 
         let engine = Box::new(StandardExecutionEngine::new(cross_chain_executor));
         let retry_config = RetryConfig::default();
 
         let executor = AutomatedExecutor::new(engine, 5, retry_config);
-        
+
         let summary = executor.get_status_summary();
         assert_eq!(summary.get("pending").unwrap_or(&0), &0);
         assert_eq!(summary.get("executing").unwrap_or(&0), &0);
