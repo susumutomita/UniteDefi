@@ -76,6 +76,27 @@ fusion-cli swap status --id <swap-id>
 
 # Complete swap (automatic when conditions are met)
 fusion-cli swap complete --id <swap-id>
+
+# Create a limit order
+fusion-cli order create \
+  --maker-asset 0x4200000000000000000000000000000000000006 \
+  --taker-asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+  --maker 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
+  --making-amount 1000000000000000000 \
+  --taking-amount 3000000000 \
+  --htlc-secret-hash <hash> \
+  --htlc-timeout 3600 \
+  --chain-id 84532 \
+  --verifying-contract 0x171C87724E720F2806fc29a010a62897B30fdb62
+
+# Check order status
+fusion-cli order status --order-id <order-id>
+
+# Cancel an active order
+fusion-cli order cancel --order-id <order-id>
+
+# View orderbook for a specific chain
+fusion-cli orderbook --chain ethereum
 ```
 
 ## 📋 Hackathon Requirements Checklist

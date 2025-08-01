@@ -204,9 +204,134 @@ The CLI provides clear error messages for common issues:
 - Unsupported target chain
 - Invalid order hash format
 
+## Order Status Command
+
+The `order status` command allows you to check the current status of an order.
+
+### Usage
+
+```bash
+fusion-cli order status --order-id <ORDER_ID>
+```
+
+### Example
+
+```bash
+fusion-cli order status --order-id order_12345678
+```
+
+### Output Format
+
+```json
+{
+  "order_id": "order_12345678",
+  "status": "Active",
+  "maker": "0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950",
+  "maker_asset": "0x4200000000000000000000000000000000000006",
+  "taker_asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "making_amount": "1000000000000000000",
+  "taking_amount": "3000000000",
+  "chain": "ethereum",
+  "order_hash": "0xabcdef1234567890",
+  "created_at": "2025-08-01T12:00:00Z"
+}
+```
+
+### Status Values
+
+- `Active` - Order is open and can be filled
+- `Filled` - Order has been completely filled
+- `Cancelled` - Order has been cancelled by the maker
+- `Expired` - Order has expired
+
+## Order Cancel Command
+
+The `order cancel` command allows makers to cancel their active orders.
+
+### Usage
+
+```bash
+fusion-cli order cancel --order-id <ORDER_ID>
+```
+
+### Example
+
+```bash
+fusion-cli order cancel --order-id order_12345678
+```
+
+### Output Format
+
+```json
+{
+  "order_id": "order_12345678",
+  "status": "Cancelled",
+  "message": "Order has been successfully cancelled",
+  "cancelled_at": "2025-08-01T12:30:00Z"
+}
+```
+
+### Error Cases
+
+- Cannot cancel filled orders
+- Cannot cancel already cancelled orders
+- Cannot cancel expired orders
+
+## Orderbook Command
+
+The `orderbook` command displays all active orders for a specific blockchain.
+
+### Usage
+
+```bash
+fusion-cli orderbook --chain <CHAIN_NAME>
+```
+
+### Supported Chains
+
+- `ethereum`
+- `polygon`
+- `arbitrum`
+- `optimism`
+- `base`
+- `near`
+
+### Example
+
+```bash
+fusion-cli orderbook --chain ethereum
+```
+
+### Output Format
+
+```json
+{
+  "chain": "ethereum",
+  "orderbook": [
+    {
+      "order_id": "order_12345678",
+      "maker": "0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950",
+      "maker_asset": "0x4200000000000000000000000000000000000006",
+      "taker_asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "making_amount": "1000000000000000000",
+      "taking_amount": "3000000000",
+      "price": "333333.333333",
+      "order_hash": "0xabcdef1234567890",
+      "created_at": "2025-08-01T12:00:00Z"
+    }
+  ],
+  "total_orders": 1,
+  "timestamp": "2025-08-01T12:35:00Z"
+}
+```
+
 ## Related Commands
 
 - `fusion-cli create-htlc` - Create HTLC contracts
 - `fusion-cli claim` - Claim HTLC with secret
 - `fusion-cli refund` - Refund expired HTLC
 - `fusion-cli relay-order` - Relay orders from EVM to NEAR
+- `fusion-cli order create` - Create a new limit order
+- `fusion-cli order status` - Check order status
+- `fusion-cli order cancel` - Cancel an active order
+- `fusion-cli orderbook` - View orderbook for a chain
