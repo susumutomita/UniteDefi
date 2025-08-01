@@ -43,7 +43,7 @@ This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethe
 ### Prerequisites
 - Rust 1.75+
 - Node.js 18+ (for Ethereum interaction)
-- Chain-specific CLIs (near-cli, gaiad, stellar-cli)
+- Chain-specific CLIs (near-cli for NEAR integration)
 
 ### Installation
 ```bash
@@ -61,6 +61,20 @@ cargo install --path fusion-cli
 ./target/release/fusion-cli --help
 ```
 
+### Quick Example: Create and Claim HTLC
+```bash
+# 1. Create an HTLC (this generates a secret)
+./target/release/fusion-cli create-htlc \
+  --sender 0x1234567890123456789012345678901234567890 \
+  --recipient 0x9876543210987654321098765432109876543210 \
+  --amount 1000000000000000000
+
+# 2. Note the secret and htlc_id from the output, then claim it
+./target/release/fusion-cli claim \
+  --htlc-id <htlc_id_from_output> \
+  --secret <secret_from_output>
+```
+
 ### Basic Usage
 
 #### HTLC Operations
@@ -69,15 +83,28 @@ cargo install --path fusion-cli
 fusion-cli create-htlc \
   --sender 0x1234567890123456789012345678901234567890 \
   --recipient 0x9876543210987654321098765432109876543210 \
-  --amount 1000
+  --amount 1000 \
+  --timeout 3600
 
-# Claim an HTLC with secret
+# Example output:
+# {
+#   "htlc_id": "htlc_6c2c0d83",
+#   "secret": "27eddfe62b6a8a7787b2bfe30694d334500ed8f134b5f3f9b7a047605c7a9518",
+#   "secret_hash": "6c2c0d83023b6dba52903a91952ab0cde4a0ce554d80a9f07ec815e54438a263",
+#   "sender": "0x1234567890123456789012345678901234567890",
+#   "recipient": "0x9876543210987654321098765432109876543210",
+#   "amount": 1000,
+#   "timeout_seconds": 3600,
+#   "status": "Pending"
+# }
+
+# Claim an HTLC with secret (use the secret from create-htlc output)
 fusion-cli claim \
-  --htlc-id htlc_6c2c0d83023b6dba \
+  --htlc-id htlc_6c2c0d83 \
   --secret 27eddfe62b6a8a7787b2bfe30694d334500ed8f134b5f3f9b7a047605c7a9518
 
 # Refund an HTLC after timeout
-fusion-cli refund --htlc-id htlc_6c2c0d83023b6dba
+fusion-cli refund --htlc-id htlc_6c2c0d83
 ```
 
 #### Limit Order Operations
@@ -98,8 +125,8 @@ fusion-cli order create \
 fusion-cli order create-near \
   --near-account alice.near \
   --ethereum-address 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
-  --near-amount 1000000000000000000000000 \
-  --secret-hash 0x6c2c0d83023b6dba52903a91952ab0cde4a0ce554d80a9f07ec815e54438a263
+  --near-amount 10.0 \
+  --generate-secret
 
 # Check order status
 fusion-cli order status --order-id <order-id>
@@ -113,11 +140,36 @@ fusion-cli orderbook --chain ethereum
 
 #### Cross-Chain Operations
 ```bash
-# Relay an order from EVM to another chain
+# Relay an order from EVM to another chain (currently only NEAR supported)
 fusion-cli relay-order \
   --order-hash 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef \
   --to-chain near \
-  --htlc-secret 0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba
+  --htlc-secret 0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba \
+  --near-account alice.near
+```
+
+### Command Reference
+
+#### Available Commands
+```bash
+# Display help information
+fusion-cli --help
+fusion-cli <command> --help
+
+# HTLC commands
+fusion-cli create-htlc    # Create a new HTLC
+fusion-cli claim          # Claim an HTLC with secret
+fusion-cli refund         # Refund an HTLC after timeout
+
+# Order commands
+fusion-cli order create       # Create a new limit order (EVM)
+fusion-cli order create-near  # Create a NEAR to Ethereum order
+fusion-cli order status       # Check order status
+fusion-cli order cancel       # Cancel an order
+
+# Cross-chain operations
+fusion-cli relay-order    # Relay an order from EVM to another chain
+fusion-cli orderbook      # Display orderbook for a specific chain
 ```
 
 ## 📋 Hackathon Requirements Checklist
