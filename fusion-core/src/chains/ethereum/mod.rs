@@ -6,8 +6,11 @@ use ethers::types::{Address, TransactionReceipt, U256};
 use std::sync::Arc;
 
 pub mod abi;
+pub mod event_monitor;
 pub mod event_storage;
 pub mod events;
+pub mod limit_order_abi;
+pub mod order_extractor;
 
 pub struct EthereumConnector {
     provider: Arc<Provider<Http>>,

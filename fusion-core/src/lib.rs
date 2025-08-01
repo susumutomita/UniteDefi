@@ -1,6 +1,8 @@
 pub mod chains;
+pub mod claim_executor;
 pub mod config;
 pub mod cross_chain_executor;
+pub mod cross_chain_secret_manager;
 pub mod eip712;
 pub mod event_order_linker;
 pub mod htlc;
