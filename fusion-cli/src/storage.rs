@@ -104,6 +104,7 @@ impl OrderStorage {
         }
     }
 
+    #[allow(dead_code)]
     pub fn store(&self, order_id: String, stored_order: StoredOrder) -> Result<()> {
         let mut storage = self
             .orders
@@ -142,13 +143,13 @@ impl OrderStorage {
             .orders
             .lock()
             .map_err(|e| anyhow!("Lock error: {}", e))?;
-        
+
         let orders: Vec<StoredOrder> = storage
             .values()
             .filter(|order| order.chain == chain)
             .cloned()
             .collect();
-        
+
         Ok(orders)
     }
 }

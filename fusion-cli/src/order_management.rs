@@ -1,9 +1,11 @@
-use anyhow::{anyhow, Result};
-use clap::Args;
-use serde_json::json;
-use crate::storage::{OrderStorage, OrderStatus, StoredOrder};
-use once_cell::sync::Lazy;
+#[cfg(test)]
+use crate::storage::StoredOrder;
+use crate::storage::{OrderStatus, OrderStorage};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
+use clap::Args;
+use once_cell::sync::Lazy;
+use serde_json::json;
 
 pub static ORDER_STORAGE: Lazy<OrderStorage> = Lazy::new(OrderStorage::new);
 
@@ -79,7 +81,7 @@ pub async fn handle_order_cancel(args: CancelArgs) -> Result<()> {
         OrderStatus::Active => {
             // Update status to cancelled
             ORDER_STORAGE.update_status(&args.order_id, OrderStatus::Cancelled)?;
-            
+
             let output = json!({
                 "order_id": args.order_id,
                 "status": "Cancelled",
@@ -122,7 +124,7 @@ pub async fn handle_order_cancel(args: CancelArgs) -> Result<()> {
 pub async fn handle_orderbook(args: OrderbookArgs) -> Result<()> {
     // Get all orders for the specified chain
     let orders = ORDER_STORAGE.get_orders_by_chain(&args.chain)?;
-    
+
     if orders.is_empty() {
         let output = json!({
             "chain": args.chain,
@@ -168,7 +170,7 @@ fn calculate_price(making_amount: u128, taking_amount: u128) -> String {
     if taking_amount == 0 {
         return "0".to_string();
     }
-    
+
     // Simple price calculation - in production, we'd need to consider decimals
     let price = making_amount as f64 / taking_amount as f64;
     format!("{:.6}", price)
@@ -268,7 +270,10 @@ mod tests {
 
     #[test]
     fn test_calculate_price() {
-        assert_eq!(calculate_price(1000000000000000000, 3000000000), "333333.333333");
+        assert_eq!(
+            calculate_price(1000000000000000000, 3000000000),
+            "333333333.333333"
+        );
         assert_eq!(calculate_price(0, 1000), "0.000000");
         assert_eq!(calculate_price(1000, 0), "0");
     }

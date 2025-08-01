@@ -1,6 +1,5 @@
-use fusion_cli::storage::{OrderStorage, StoredOrder, OrderStatus};
-use fusion_cli::order_management::{handle_order_status, handle_order_cancel, handle_orderbook, StatusArgs, CancelArgs, OrderbookArgs, ORDER_STORAGE};
-use std::time::SystemTime;
+use fusion_cli::order_management::{CancelArgs, OrderbookArgs, StatusArgs};
+use fusion_cli::storage::{OrderStatus, OrderStorage, StoredOrder};
 
 #[test]
 fn test_order_status_command_returns_correct_status() {
@@ -22,10 +21,10 @@ fn test_order_status_command_returns_correct_status() {
     storage.store(order_id.to_string(), stored_order).unwrap();
 
     // When: Status command is executed
-    let args = StatusArgs {
+    let _args = StatusArgs {
         order_id: order_id.to_string(),
     };
-    
+
     // Then: Should return order details with status
     // This will be implemented in the actual code
 }
@@ -33,10 +32,10 @@ fn test_order_status_command_returns_correct_status() {
 #[test]
 fn test_order_status_command_handles_non_existent_order() {
     // Given: Non-existent order ID
-    let args = StatusArgs {
+    let _args = StatusArgs {
         order_id: "non_existent_order".to_string(),
     };
-    
+
     // When: Status command is executed
     // Then: Should return appropriate error message
 }
@@ -61,10 +60,10 @@ fn test_order_cancel_command_cancels_active_order() {
     storage.store(order_id.to_string(), stored_order).unwrap();
 
     // When: Cancel command is executed
-    let args = CancelArgs {
+    let _args = CancelArgs {
         order_id: order_id.to_string(),
     };
-    
+
     // Then: Order status should be updated to Cancelled
 }
 
@@ -88,10 +87,10 @@ fn test_order_cancel_command_fails_for_filled_order() {
     storage.store(order_id.to_string(), stored_order).unwrap();
 
     // When: Cancel command is executed
-    let args = CancelArgs {
+    let _args = CancelArgs {
         order_id: order_id.to_string(),
     };
-    
+
     // Then: Should return error indicating order cannot be cancelled
 }
 
@@ -99,7 +98,7 @@ fn test_order_cancel_command_fails_for_filled_order() {
 fn test_orderbook_command_returns_orders_for_chain() {
     // Given: Multiple orders on different chains
     let storage = OrderStorage::new();
-    
+
     // Ethereum orders
     for i in 0..3 {
         let order = StoredOrder {
@@ -116,7 +115,7 @@ fn test_orderbook_command_returns_orders_for_chain() {
         };
         storage.store(order.id.clone(), order).unwrap();
     }
-    
+
     // Near orders
     for i in 0..2 {
         let order = StoredOrder {
@@ -135,20 +134,20 @@ fn test_orderbook_command_returns_orders_for_chain() {
     }
 
     // When: Orderbook command is executed for ethereum
-    let args = OrderbookArgs {
+    let _args = OrderbookArgs {
         chain: "ethereum".to_string(),
     };
-    
+
     // Then: Should return only ethereum orders
 }
 
 #[test]
 fn test_orderbook_command_handles_empty_orderbook() {
     // Given: No orders exist
-    let args = OrderbookArgs {
+    let _args = OrderbookArgs {
         chain: "polygon".to_string(),
     };
-    
+
     // When: Orderbook command is executed
     // Then: Should return empty orderbook message
 }
