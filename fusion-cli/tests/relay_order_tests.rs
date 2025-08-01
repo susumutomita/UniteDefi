@@ -1,21 +1,20 @@
-use anyhow::Result;
-use serde_json::json;
-
 #[cfg(test)]
 mod relay_order_tests {
-    use super::*;
 
     #[test]
     fn test_relay_order_command_with_minimum_args() {
         // Test that relay-order command accepts minimum required arguments
-        let args = vec![
+        let _args = [
             "fusion-cli",
             "relay-order",
-            "--order-hash", "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-            "--to-chain", "near",
-            "--htlc-secret", "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
+            "--order-hash",
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            "--to-chain",
+            "near",
+            "--htlc-secret",
+            "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
         ];
-        
+
         // This test should verify the command parses correctly
         // Actual implementation will be added when we implement the command
     }
@@ -23,66 +22,80 @@ mod relay_order_tests {
     #[test]
     fn test_relay_order_command_with_all_args() {
         // Test that relay-order command accepts all arguments
-        let args = vec![
+        let _args = [
             "fusion-cli",
             "relay-order",
-            "--order-hash", "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-            "--to-chain", "near",
-            "--htlc-secret", "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
-            "--near-account", "alice.testnet",
-            "--evm-rpc", "https://sepolia.base.org",
-            "--near-network", "testnet",
+            "--order-hash",
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            "--to-chain",
+            "near",
+            "--htlc-secret",
+            "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
+            "--near-account",
+            "alice.testnet",
+            "--evm-rpc",
+            "https://sepolia.base.org",
+            "--near-network",
+            "testnet",
         ];
-        
+
         // This test should verify the command parses correctly with all options
     }
 
     #[test]
     fn test_relay_order_invalid_order_hash() {
         // Test that invalid order hash is rejected
-        let args = vec![
+        let _args = [
             "fusion-cli",
             "relay-order",
-            "--order-hash", "invalid-hash",
-            "--to-chain", "near",
-            "--htlc-secret", "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
+            "--order-hash",
+            "invalid-hash",
+            "--to-chain",
+            "near",
+            "--htlc-secret",
+            "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
         ];
-        
+
         // This test should verify error handling for invalid order hash
     }
 
     #[test]
     fn test_relay_order_invalid_htlc_secret() {
         // Test that invalid HTLC secret is rejected
-        let args = vec![
+        let _args = [
             "fusion-cli",
             "relay-order",
-            "--order-hash", "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-            "--to-chain", "near",
-            "--htlc-secret", "invalid-secret",
+            "--order-hash",
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            "--to-chain",
+            "near",
+            "--htlc-secret",
+            "invalid-secret",
         ];
-        
+
         // This test should verify error handling for invalid secret
     }
 
     #[test]
     fn test_relay_order_unsupported_chain() {
         // Test that unsupported chain is rejected
-        let args = vec![
+        let _args = [
             "fusion-cli",
             "relay-order",
-            "--order-hash", "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-            "--to-chain", "unsupported-chain",
-            "--htlc-secret", "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
+            "--order-hash",
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            "--to-chain",
+            "unsupported-chain",
+            "--htlc-secret",
+            "0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba",
         ];
-        
+
         // This test should verify error handling for unsupported chain
     }
 }
 
 #[cfg(test)]
 mod relay_order_handler_tests {
-    use super::*;
 
     #[tokio::test]
     async fn test_extract_order_info_from_evm() {
