@@ -30,7 +30,7 @@ enum Commands {
     /// Refund an HTLC after timeout
     Refund(RefundArgs),
     /// Order commands
-    Order(OrderCommands),
+    Order(Box<OrderCommands>),
 }
 
 #[derive(Args)]
@@ -90,7 +90,9 @@ async fn main() -> Result<()> {
         Commands::Refund(args) => handle_refund(args).await,
         Commands::Order(order_cmd) => match order_cmd.command {
             OrderSubcommands::Create(args) => order_handler::handle_create_order(args).await,
-            OrderSubcommands::CreateNear(args) => near_order_handler::handle_create_near_order(args).await,
+            OrderSubcommands::CreateNear(args) => {
+                near_order_handler::handle_create_near_order(args).await
+            }
         },
     }
 }

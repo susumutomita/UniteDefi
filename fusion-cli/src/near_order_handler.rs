@@ -70,7 +70,9 @@ pub async fn handle_create_near_order(args: CreateNearOrderArgs) -> Result<()> {
         hash.copy_from_slice(&hash_bytes);
         (None, hash)
     } else {
-        return Err(anyhow!("Must either generate secret or provide secret hash"));
+        return Err(anyhow!(
+            "Must either generate secret or provide secret hash"
+        ));
     };
 
     // Convert NEAR amount to smallest unit

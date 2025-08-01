@@ -87,19 +87,20 @@ pub async fn handle_create_order(args: CreateOrderArgs) -> Result<()> {
     secret_hash.copy_from_slice(&secret_hash_bytes);
 
     // Create maker asset data with embedded HTLC info
-    let interactions_data = if let (Some(chain), Some(address)) = (&args.recipient_chain, &args.recipient_address) {
-        // Use new HTLCData format with chain and address info
-        let htlc_data = HTLCData::new(
-            secret_hash,
-            args.htlc_timeout,
-            chain.clone(),
-            address.clone(),
-        )?;
-        htlc_data.to_hex()
-    } else {
-        // Use legacy format for backward compatibility
-        encode_htlc_data(&secret_hash_bytes, args.htlc_timeout)
-    };
+    let interactions_data =
+        if let (Some(chain), Some(address)) = (&args.recipient_chain, &args.recipient_address) {
+            // Use new HTLCData format with chain and address info
+            let htlc_data = HTLCData::new(
+                secret_hash,
+                args.htlc_timeout,
+                chain.clone(),
+                address.clone(),
+            )?;
+            htlc_data.to_hex()
+        } else {
+            // Use legacy format for backward compatibility
+            encode_htlc_data(&secret_hash_bytes, args.htlc_timeout)
+        };
 
     // Build order
     let mut builder = OrderBuilder::new()

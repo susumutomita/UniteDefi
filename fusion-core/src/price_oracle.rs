@@ -19,10 +19,10 @@ pub struct PriceData {
 pub trait PriceOracle: Send + Sync {
     /// トークンの現在価格を取得
     async fn get_price(&self, token_symbol: &str) -> Result<PriceData>;
-    
+
     /// 複数トークンの価格を一括取得
     async fn get_prices(&self, token_symbols: &[&str]) -> Result<HashMap<String, PriceData>>;
-    
+
     /// サポートされているトークンのリストを取得
     async fn supported_tokens(&self) -> Result<Vec<String>>;
 }
@@ -32,10 +32,10 @@ pub struct MockPriceOracle {
     prices: HashMap<String, PriceData>,
 }
 
-impl MockPriceOracle {
-    pub fn new() -> Self {
+impl Default for MockPriceOracle {
+    fn default() -> Self {
         let mut prices = HashMap::new();
-        
+
         // デフォルトの価格を設定
         prices.insert(
             "NEAR".to_string(),
@@ -45,7 +45,7 @@ impl MockPriceOracle {
                 confidence: 0.99,
             },
         );
-        
+
         prices.insert(
             "ETH".to_string(),
             PriceData {
@@ -54,7 +54,7 @@ impl MockPriceOracle {
                 confidence: 0.99,
             },
         );
-        
+
         prices.insert(
             "USDC".to_string(),
             PriceData {
@@ -63,10 +63,16 @@ impl MockPriceOracle {
                 confidence: 1.0,
             },
         );
-        
+
         Self { prices }
     }
-    
+}
+
+impl MockPriceOracle {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// 価格を更新（テスト用）
     pub fn set_price(&mut self, token: &str, price: f64) {
         if let Some(data) = self.prices.get_mut(token) {
@@ -87,19 +93,19 @@ impl PriceOracle for MockPriceOracle {
             .cloned()
             .ok_or_else(|| anyhow!("Token {} not supported", token_symbol))
     }
-    
+
     async fn get_prices(&self, token_symbols: &[&str]) -> Result<HashMap<String, PriceData>> {
         let mut result = HashMap::new();
-        
+
         for symbol in token_symbols {
             if let Some(price) = self.prices.get(*symbol) {
                 result.insert(symbol.to_string(), price.clone());
             }
         }
-        
+
         Ok(result)
     }
-    
+
     async fn supported_tokens(&self) -> Result<Vec<String>> {
         Ok(self.prices.keys().cloned().collect())
     }
@@ -122,11 +128,11 @@ impl PriceOracle for ChainlinkOracle {
         // TODO: Chainlinkから実際の価格を取得
         Err(anyhow!("Chainlink oracle not implemented yet"))
     }
-    
+
     async fn get_prices(&self, _token_symbols: &[&str]) -> Result<HashMap<String, PriceData>> {
         Err(anyhow!("Chainlink oracle not implemented yet"))
     }
-    
+
     async fn supported_tokens(&self) -> Result<Vec<String>> {
         Err(anyhow!("Chainlink oracle not implemented yet"))
     }
@@ -141,19 +147,15 @@ impl<O: PriceOracle> PriceConverter<O> {
     pub fn new(oracle: O) -> Self {
         Self { oracle }
     }
-    
+
     /// トークンAからトークンBへの変換レートを計算
-    pub async fn get_conversion_rate(
-        &self,
-        from_token: &str,
-        to_token: &str,
-    ) -> Result<f64> {
+    pub async fn get_conversion_rate(&self, from_token: &str, to_token: &str) -> Result<f64> {
         let from_price = self.oracle.get_price(from_token).await?;
         let to_price = self.oracle.get_price(to_token).await?;
-        
+
         Ok(from_price.price / to_price.price)
     }
-    
+
     /// 金額を変換
     pub async fn convert_amount(
         &self,
@@ -164,12 +166,12 @@ impl<O: PriceOracle> PriceConverter<O> {
         to_decimals: u8,
     ) -> Result<u128> {
         let rate = self.get_conversion_rate(from_token, to_token).await?;
-        
+
         // デシマルを考慮して変換
         let from_units = amount as f64 / 10f64.powi(from_decimals as i32);
         let to_units = from_units * rate;
         let to_amount = (to_units * 10f64.powi(to_decimals as i32)) as u128;
-        
+
         Ok(to_amount)
     }
 }
@@ -181,11 +183,11 @@ mod tests {
     #[tokio::test]
     async fn test_mock_oracle() {
         let oracle = MockPriceOracle::new();
-        
+
         // NEARの価格を取得
         let near_price = oracle.get_price("NEAR").await.unwrap();
         assert_eq!(near_price.price, 5.0);
-        
+
         // サポートされているトークンを確認
         let tokens = oracle.supported_tokens().await.unwrap();
         assert!(tokens.contains(&"NEAR".to_string()));
@@ -197,21 +199,18 @@ mod tests {
     async fn test_price_converter() {
         let oracle = MockPriceOracle::new();
         let converter = PriceConverter::new(oracle);
-        
+
         // NEAR -> ETH の変換レートを計算
         let rate = converter.get_conversion_rate("NEAR", "ETH").await.unwrap();
         assert_eq!(rate, 5.0 / 2000.0); // 0.0025
-        
+
         // 1 NEAR を ETH に変換
         let near_amount = 1_000_000_000_000_000_000_000_000; // 1 NEAR (24 decimals)
-        let eth_amount = converter.convert_amount(
-            near_amount,
-            "NEAR",
-            24,
-            "ETH",
-            18,
-        ).await.unwrap();
-        
+        let eth_amount = converter
+            .convert_amount(near_amount, "NEAR", 24, "ETH", 18)
+            .await
+            .unwrap();
+
         // 1 NEAR * 0.0025 = 0.0025 ETH = 2_500_000_000_000_000 wei
         assert_eq!(eth_amount, 2_500_000_000_000_000);
     }
@@ -219,7 +218,7 @@ mod tests {
     #[tokio::test]
     async fn test_batch_price_fetch() {
         let oracle = MockPriceOracle::new();
-        
+
         let prices = oracle.get_prices(&["NEAR", "ETH"]).await.unwrap();
         assert_eq!(prices.len(), 2);
         assert_eq!(prices.get("NEAR").unwrap().price, 5.0);
@@ -229,10 +228,10 @@ mod tests {
     #[tokio::test]
     async fn test_price_update() {
         let mut oracle = MockPriceOracle::new();
-        
+
         // 価格を更新
         oracle.set_price("NEAR", 6.0);
-        
+
         let near_price = oracle.get_price("NEAR").await.unwrap();
         assert_eq!(near_price.price, 6.0);
     }
@@ -240,7 +239,7 @@ mod tests {
     #[tokio::test]
     async fn test_unsupported_token() {
         let oracle = MockPriceOracle::new();
-        
+
         let result = oracle.get_price("UNKNOWN").await;
         assert!(result.is_err());
     }

@@ -2,23 +2,24 @@
 
 ## 概要
 
-NEAR-Limit Order統合により、NEARチェーンのHTLCコントラクトと1inch Limit Order Protocolを接続し、EVM・非EVM間でのアトミックスワップが可能になります。
+NEAR-Limit Order統合により、NEARチェインのHTLCコントラクトと1inch Limit Order Protocolを接続します。
+EVM・非EVM間でのアトミックスワップが可能になります。
 
 ## アーキテクチャ
 
 ### コンポーネント
 
-1. **NEARチェーン側**
+1. **NEARチェイン側**
    - HTLCコントラクト（`fusion_htlc.rs`）
    - タイムロック機能とシークレットハッシュによる保護
 
-2. **Ethereumチェーン側**
+2. **Ethereumチェイン側**
    - 1inch Limit Order Protocol（Base Sepolia）
    - Escrowコントラクト
 
 3. **ブリッジロジック**
    - HTLCDataエンコーディング
-   - クロスチェーン実行フロー
+   - クロスチェイン実行フロー
    - 価格オラクル統合
 
 ## HTLCData構造
@@ -96,11 +97,11 @@ let order = create_near_to_ethereum_order(
 
 4. **NEAR側でHTLC作成**
    - システムがフィルイベントを検知
-   - NEARチェーンでHTLCを作成
+   - NEARチェインでHTLCを作成
 
 5. **シークレット公開**
    - リゾルバーがEthereum側でシークレットを公開してクレーム
-   - シークレットがブロックチェーンに記録される
+   - シークレットがブロックチェインに記録される
 
 6. **NEAR側でクレーム**
    - システムが公開されたシークレットを使用
@@ -109,7 +110,7 @@ let order = create_near_to_ethereum_order(
 
 ## 価格オラクル
 
-現在の実装では`MockPriceOracle`を使用していますが、本番環境では以下のオラクルと統合予定：
+現在の実装では`MockPriceOracle`を使用していますが、本番環境では以下のオラクルと統合予定です。
 
 - Chainlink Price Feeds
 - Pyth Network
@@ -117,8 +118,8 @@ let order = create_near_to_ethereum_order(
 ## セキュリティ考慮事項
 
 1. **タイムロック**
-   - 適切なタイムアウト期間の設定が重要
-   - チェーン間の確認時間を考慮
+   - タイムアウト期間を3600秒（1時間）以上に設定することが重要
+   - チェイン間の確認時間を考慮
 
 2. **シークレット管理**
    - シークレットは安全に保管する必要がある
@@ -132,10 +133,10 @@ let order = create_near_to_ethereum_order(
 ### よくある問題
 
 1. **"Invalid NEAR account format"**
-   - NEARアカウントは`.near`または`.testnet`で終わる必要があります
+   - NEARアカウントは`.near`または`.testnet`で終わる必要がある
 
 2. **"Secret hash must be exactly 32 bytes"**
-   - シークレットハッシュは正確に32バイト（64文字の16進数）である必要があります
+   - シークレットハッシュは正確に32バイト（64文字の16進数）である必要がある
 
 3. **価格変換エラー**
    - オラクルが正しく設定されているか確認してください
@@ -147,7 +148,7 @@ let order = create_near_to_ethereum_order(
 cargo run --example near_limit_order_integration
 ```
 
-このデモでは以下を実行します：
+このデモでは次のような動作をします。
 - 価格オラクルの設定
 - HTLCシークレットの生成
 - NEAR→Ethereumオーダーの作成
