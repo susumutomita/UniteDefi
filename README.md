@@ -297,6 +297,39 @@ UniteDefi/
 3. **Safety Deposits**: Prevents griefing attacks through economic incentives
 4. **Signature Verification**: All operations require proper authorization
 
+## 📍 Deployed Contracts
+
+### Base Sepolia (Chain ID: 84532)
+- **Limit Order Protocol**: [`0x171C87724E720F2806fc29a010a62897B30fdb62`](https://sepolia.basescan.org/address/0x171C87724E720F2806fc29a010a62897B30fdb62)
+- **Escrow Factory**: [`0x848285f35044e485BD5F0235c27924b1392144b3`](https://sepolia.basescan.org/address/0x848285f35044e485BD5F0235c27924b1392144b3)
+
+### NEAR Testnet
+- **HTLC Contract**: 
+  - `htlc-v2.testnet` (fully operational)
+  - Explorer: https://testnet.nearblocks.io/address/htlc-v2.testnet
+  - Owner: `uniteswap.testnet`
+  - Status: ✅ Live and tested
+
+## 🎬 Demo
+
+### Quick Demo
+Test the NEAR HTLC functionality:
+```bash
+./demo/quick-demo.sh
+```
+
+### Full Cross-Chain Demo
+Simulate a complete atomic swap between Ethereum and NEAR:
+```bash
+./demo/cross-chain-swap-demo.sh
+```
+
+### Demo Guide
+For detailed instructions and troubleshooting:
+```bash
+cat demo/DEMO_GUIDE.md
+```
+
 ## 🤝 Team
 
 - **Lead Developer**: [Susumu Tomita](https://susumutomita.netlify.app/)

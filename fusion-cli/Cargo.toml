@@ -1,12 +1,12 @@
 [package]
 name = "fusion-cli"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
-homepage.workspace = true
-readme.workspace = true
+version = "0.1.0"
+edition = "2021"
+authors = ["Fusion Plus Team"]
+license = "MIT"
+repository = "https://github.com/susumutomita/UniteDefi"
+homepage = "https://github.com/susumutomita/UniteDefi"
+readme = "README.md"
 
 [dependencies]
 fusion-core = { path = "../fusion-core" }
