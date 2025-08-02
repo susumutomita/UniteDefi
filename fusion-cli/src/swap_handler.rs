@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::{Args, Subcommand};
 use fusion_core::{
-    htlc::{generate_secret, hash_secret, Secret, SecretHash},
+    htlc::{generate_secret, hash_secret, SecretHash},
     price_oracle::{MockPriceOracle, PriceConverter},
 };
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ use tokio::time::sleep;
 pub enum SwapCommands {
     /// Execute a single cross-chain swap
     #[command(name = "swap")]
-    Execute(SwapArgs),
+    Execute(Box<SwapArgs>),
     /// Execute batch swaps from configuration file
     Batch(BatchSwapArgs),
 }
@@ -169,7 +169,7 @@ struct TransactionInfo {
     description: String,
 }
 
-pub async fn handle_swap(args: SwapArgs) -> Result<()> {
+pub async fn handle_swap(args: Box<SwapArgs>) -> Result<()> {
     // Validate inputs
     validate_swap_inputs(&args)?;
 
@@ -177,10 +177,13 @@ pub async fn handle_swap(args: SwapArgs) -> Result<()> {
     let plan = create_swap_plan(&args).await?;
 
     if args.dry_run {
-        println!("{}", serde_json::to_string_pretty(&json!({
-            "mode": "dry_run",
-            "swap_plan": plan
-        }))?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "mode": "dry_run",
+                "swap_plan": plan
+            }))?
+        );
         return Ok(());
     }
 
@@ -252,9 +255,12 @@ pub async fn handle_batch_swap(args: BatchSwapArgs) -> Result<()> {
     }
 
     if args.dry_run {
-        println!("{}", serde_json::to_string_pretty(&json!({
-            "batch_swap_plan": batch_plan
-        }))?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "batch_swap_plan": batch_plan
+            }))?
+        );
         return Ok(());
     }
 
@@ -429,13 +435,16 @@ async fn execute_swap(args: &SwapArgs, _plan: &SwapPlan) -> Result<SwapResult> {
     let mut transactions = Vec::new();
     let mut next_steps = Vec::new();
 
-    println!("{}", json!({
-        "status": "Initiating swap",
-        "swap_id": &swap_id,
-        "from": format!("{} on {}", args.from_token, args.from_chain),
-        "to": format!("{} on {}", args.to_token, args.to_chain),
-        "amount": args.amount
-    }));
+    println!(
+        "{}",
+        json!({
+            "status": "Initiating swap",
+            "swap_id": &swap_id,
+            "from": format!("{} on {}", args.from_token, args.from_chain),
+            "to": format!("{} on {}", args.to_token, args.to_chain),
+            "amount": args.amount
+        })
+    );
 
     match (args.from_chain.as_str(), args.to_chain.as_str()) {
         ("ethereum", "near") => {
@@ -444,7 +453,10 @@ async fn execute_swap(args: &SwapArgs, _plan: &SwapPlan) -> Result<SwapResult> {
             transactions.push(TransactionInfo {
                 chain: "ethereum".to_string(),
                 tx_hash: order_result.order_hash.clone(),
-                explorer_url: format!("https://sepolia.basescan.org/tx/{}", order_result.order_hash),
+                explorer_url: format!(
+                    "https://sepolia.basescan.org/tx/{}",
+                    order_result.order_hash
+                ),
                 description: "Limit order created".to_string(),
             });
 
@@ -453,7 +465,10 @@ async fn execute_swap(args: &SwapArgs, _plan: &SwapPlan) -> Result<SwapResult> {
             transactions.push(TransactionInfo {
                 chain: "near".to_string(),
                 tx_hash: htlc_result.htlc_id.clone(),
-                explorer_url: format!("https://explorer.testnet.near.org/transactions/{}", htlc_result.htlc_id),
+                explorer_url: format!(
+                    "https://explorer.testnet.near.org/transactions/{}",
+                    htlc_result.htlc_id
+                ),
                 description: "HTLC created".to_string(),
             });
 
@@ -477,7 +492,10 @@ async fn execute_swap(args: &SwapArgs, _plan: &SwapPlan) -> Result<SwapResult> {
             transactions.push(TransactionInfo {
                 chain: "near".to_string(),
                 tx_hash: htlc_result.htlc_id.clone(),
-                explorer_url: format!("https://explorer.testnet.near.org/transactions/{}", htlc_result.htlc_id),
+                explorer_url: format!(
+                    "https://explorer.testnet.near.org/transactions/{}",
+                    htlc_result.htlc_id
+                ),
                 description: "HTLC created".to_string(),
             });
 
@@ -486,7 +504,10 @@ async fn execute_swap(args: &SwapArgs, _plan: &SwapPlan) -> Result<SwapResult> {
             transactions.push(TransactionInfo {
                 chain: "ethereum".to_string(),
                 tx_hash: order_result.order_hash.clone(),
-                explorer_url: format!("https://sepolia.basescan.org/tx/{}", order_result.order_hash),
+                explorer_url: format!(
+                    "https://sepolia.basescan.org/tx/{}",
+                    order_result.order_hash
+                ),
                 description: "Cross-chain order created".to_string(),
             });
 
@@ -523,12 +544,18 @@ async fn create_ethereum_order(args: &SwapArgs, secret_hash: &SecretHash) -> Res
     let slippage_bps = (args.slippage * 100.0) as u16;
 
     // Use the existing order creation logic
-    let order_args = crate::order_handler::CreateOrderArgs {
+    let _order_args = crate::order_handler::CreateOrderArgs {
         maker_asset: args.from_token.clone(),
         taker_asset: args.to_token.clone(),
         maker: args.from_address.clone(),
         making_amount: convert_amount_to_wei(args.amount, &args.from_token),
-        taking_amount: calculate_taking_amount(args.amount, &args.from_token, &args.to_token, slippage_bps).await?,
+        taking_amount: calculate_taking_amount(
+            args.amount,
+            &args.from_token,
+            &args.to_token,
+            slippage_bps,
+        )
+        .await?,
         htlc_secret_hash: hex::encode(secret_hash),
         htlc_timeout: args.timeout,
         chain_id: args.chain_id,
@@ -546,7 +573,7 @@ async fn create_ethereum_order(args: &SwapArgs, secret_hash: &SecretHash) -> Res
     })
 }
 
-async fn create_near_htlc(args: &SwapArgs, secret_hash: &SecretHash) -> Result<HtlcResult> {
+async fn create_near_htlc(_args: &SwapArgs, secret_hash: &SecretHash) -> Result<HtlcResult> {
     // In a real implementation, this would create an HTLC on NEAR
     // For now, return a mock result
     Ok(HtlcResult {
@@ -554,12 +581,15 @@ async fn create_near_htlc(args: &SwapArgs, secret_hash: &SecretHash) -> Result<H
     })
 }
 
-async fn create_near_to_ethereum_order(args: &SwapArgs, secret_hash: &SecretHash) -> Result<OrderResult> {
+async fn create_near_to_ethereum_order(
+    args: &SwapArgs,
+    secret_hash: &SecretHash,
+) -> Result<OrderResult> {
     // Convert slippage to basis points
     let slippage_bps = (args.slippage * 100.0) as u16;
 
     // Use the existing NEAR order creation logic
-    let order_args = crate::near_order_handler::CreateNearOrderArgs {
+    let _order_args = crate::near_order_handler::CreateNearOrderArgs {
         near_account: args.from_address.clone(),
         ethereum_address: args.to_address.clone(),
         near_amount: args.amount,
@@ -608,7 +638,13 @@ async fn calculate_taking_amount(
 
     let from_amount = convert_amount_to_wei(amount, from_token);
     let expected_amount = converter
-        .convert_amount(from_amount, from_token, from_decimals, to_token, to_decimals)
+        .convert_amount(
+            from_amount,
+            from_token,
+            from_decimals,
+            to_token,
+            to_decimals,
+        )
         .await?;
 
     // Apply slippage
@@ -617,11 +653,14 @@ async fn calculate_taking_amount(
 }
 
 async fn monitor_and_claim(args: &SwapArgs, result: &SwapResult) -> Result<()> {
-    println!("{}", json!({
-        "status": "Monitoring swap execution",
-        "swap_id": &result.swap_id,
-        "monitoring_interval": args.monitor_interval
-    }));
+    println!(
+        "{}",
+        json!({
+            "status": "Monitoring swap execution",
+            "swap_id": &result.swap_id,
+            "monitoring_interval": args.monitor_interval
+        })
+    );
 
     // In a real implementation, this would:
     // 1. Monitor order execution status
@@ -633,22 +672,28 @@ async fn monitor_and_claim(args: &SwapArgs, result: &SwapResult) -> Result<()> {
     for attempt in 1..=max_attempts {
         sleep(Duration::from_secs(args.monitor_interval)).await;
 
-        println!("{}", json!({
-            "status": "Checking swap status",
-            "attempt": attempt,
-            "max_attempts": max_attempts
-        }));
+        println!(
+            "{}",
+            json!({
+                "status": "Checking swap status",
+                "attempt": attempt,
+                "max_attempts": max_attempts
+            })
+        );
 
         // Check status and break if completed
         // In real implementation, would check actual blockchain state
     }
 
-    println!("{}", json!({
-        "status": "Monitoring complete",
-        "result": "Manual claim required",
-        "secret": result.secret.as_ref().unwrap(),
-        "instructions": result.next_steps
-    }));
+    println!(
+        "{}",
+        json!({
+            "status": "Monitoring complete",
+            "result": "Manual claim required",
+            "secret": result.secret.as_ref().unwrap(),
+            "instructions": result.next_steps
+        })
+    );
 
     Ok(())
 }
