@@ -9,6 +9,7 @@ mod order_handler;
 mod order_management;
 mod relay_order_handler;
 mod storage;
+mod swap_handler;
 use once_cell::sync::Lazy;
 use storage::{HtlcStorage, StoredHtlc};
 
@@ -37,6 +38,9 @@ enum Commands {
     RelayOrder(relay_order_handler::RelayOrderArgs),
     /// Display orderbook for a specific chain
     Orderbook(order_management::OrderbookArgs),
+    /// Integrated cross-chain token swap
+    #[command(subcommand)]
+    Swap(swap_handler::SwapCommands),
 }
 
 #[derive(Args)]
@@ -108,6 +112,10 @@ async fn main() -> Result<()> {
         },
         Commands::RelayOrder(args) => relay_order_handler::handle_relay_order(args).await,
         Commands::Orderbook(args) => order_management::handle_orderbook(args).await,
+        Commands::Swap(swap_cmd) => match swap_cmd {
+            swap_handler::SwapCommands::Execute(args) => swap_handler::handle_swap(args).await,
+            swap_handler::SwapCommands::Batch(args) => swap_handler::handle_batch_swap(args).await,
+        },
     }
 }
 

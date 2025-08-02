@@ -18,12 +18,15 @@ This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethe
 **UniteSwap** provides a unified Rust-based CLI tool that implements the Hash Time Lock Contract (HTLC) pattern for secure cross-chain token swaps. Our implementation preserves the security guarantees of 1inch Fusion+ while extending support to multiple non-EVM chains through a modular, extensible architecture.
 
 ### Key Features
+- ✅ **NEW: Integrated Swap Command** - Single command for seamless cross-chain swaps
 - ✅ Bidirectional swaps (EVM ↔ non-EVM)
 - ✅ Preserved hashlock and timelock functionality
 - ✅ Multi-chain support (NEAR, Cosmos, Stellar)
 - ✅ Safety deposit mechanism
 - ✅ CLI interface for easy testing and integration
 - ✅ Modular architecture for adding new chains
+- ✅ Automated secret management and monitoring
+- ✅ Batch swap support for multiple transactions
 
 ## 🛠️ Architecture
 
@@ -37,6 +40,33 @@ This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethe
 │ - ERC20 Tokens  │     │ - Monitoring    │     │ - Stellar HTLC  │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
+
+## 🎯 NEW: Integrated Swap Command
+
+The integrated swap command simplifies cross-chain token swaps by automating the entire process:
+
+### Why Use the Integrated Swap Command?
+
+**Before (Manual Process):**
+1. Generate secret manually
+2. Create HTLC contract
+3. Create limit order with HTLC parameters
+4. Monitor order execution
+5. Claim funds from HTLC
+6. Handle errors and timeouts manually
+
+**Now (Integrated Swap):**
+```bash
+fusion-cli swap --from-chain ethereum --to-chain near --amount 1.0 ...
+```
+
+### Features:
+- **One Command**: Execute complete cross-chain swaps with a single command
+- **Automated Secret Management**: Secure generation and handling of HTLC secrets
+- **Real-time Monitoring**: Track swap progress and automatic claim execution
+- **Error Recovery**: Built-in retry logic and timeout handling
+- **Batch Support**: Execute multiple swaps from configuration files
+- **Price Oracle Integration**: Automatic price calculation with slippage protection
 
 ## 🚀 Quick Start
 
@@ -138,6 +168,72 @@ fusion-cli order cancel --order-id <order-id>
 fusion-cli orderbook --chain ethereum
 ```
 
+#### Integrated Swap Command 🎯 NEW!
+```bash
+# Single command for seamless cross-chain swaps
+# Ethereum → NEAR swap
+fusion-cli swap \
+  --from-chain ethereum \
+  --to-chain near \
+  --from-token 0x4200000000000000000000000000000000000006 \
+  --to-token NEAR \
+  --amount 1.0 \
+  --from-address 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
+  --to-address alice.near \
+  --slippage 1.0
+
+# NEAR → Ethereum swap  
+fusion-cli swap \
+  --from-chain near \
+  --to-chain ethereum \
+  --from-token NEAR \
+  --to-token 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+  --amount 10.0 \
+  --from-address alice.near \
+  --to-address 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950
+
+# Advanced swap with custom options
+fusion-cli swap \
+  --from-chain ethereum \
+  --to-chain near \
+  --from-token WETH \
+  --to-token NEAR \
+  --amount 0.5 \
+  --from-address 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
+  --to-address alice.near \
+  --slippage 0.5 \
+  --timeout 7200 \
+  --auto-claim \
+  --monitor-interval 30
+
+# Batch swaps from configuration file
+fusion-cli swap batch \
+  --config swaps.json \
+  --dry-run
+
+# Example swaps.json:
+# [
+#   {
+#     "from_chain": "ethereum",
+#     "to_chain": "near",
+#     "from_token": "WETH",
+#     "to_token": "NEAR",
+#     "amount": 0.5,
+#     "from_address": "0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950",
+#     "to_address": "alice.near"
+#   },
+#   {
+#     "from_chain": "near",
+#     "to_chain": "ethereum",
+#     "from_token": "NEAR",
+#     "to_token": "USDC",
+#     "amount": 10.0,
+#     "from_address": "bob.near",
+#     "to_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+#   }
+# ]
+```
+
 #### Cross-Chain Operations
 ```bash
 # Relay an order from EVM to another chain (currently only NEAR supported)
@@ -170,6 +266,10 @@ fusion-cli order cancel       # Cancel an order
 # Cross-chain operations
 fusion-cli relay-order    # Relay an order from EVM to another chain
 fusion-cli orderbook      # Display orderbook for a specific chain
+
+# Integrated swap command (NEW!)
+fusion-cli swap          # Single-command cross-chain swap
+fusion-cli swap batch    # Execute multiple swaps from config file
 ```
 
 ## 📋 Hackathon Requirements Checklist
