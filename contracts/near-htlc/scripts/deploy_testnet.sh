@@ -77,7 +77,7 @@ deploy_contract() {
     local account_id="$1"
     echo -e "${YELLOW}Deploying contract to: $account_id${NC}"
 
-    near deploy --accountId "$account_id" --wasmFile "$WASM_FILE"
+    near deploy "$account_id" "$WASM_FILE"
 
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ Contract deployed successfully${NC}"

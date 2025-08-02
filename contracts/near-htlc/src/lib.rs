@@ -1,5 +1,5 @@
 // Module declarations
-pub mod fusion_htlc;
+pub mod v4_htlc;
 
-// Re-export the fusion HTLC for 1inch Fusion+ compatibility
-pub use fusion_htlc::*;
+// Re-export the v4 HTLC
+pub use v4_htlc::*;
