@@ -21,6 +21,10 @@ ethers = { version = "2.0", features = ["ws", "rustls"] }
 tokio = { workspace = true, features = ["full"] }
 borsh.workspace = true
 reqwest.workspace = true
+near-jsonrpc-client = "0.12"
+near-jsonrpc-primitives = "0.23"
+near-primitives = "0.23"
+near-crypto = "0.23"
 
 [build-dependencies]
 ethers = { version = "2.0", features = ["abigen"] }

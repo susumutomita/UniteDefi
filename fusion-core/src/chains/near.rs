@@ -1,5 +1,9 @@
 use crate::htlc::SecretHash;
 
+pub mod event_monitor;
+pub mod htlc_connector;
+pub use htlc_connector::NearHtlcConnector;
+
 pub struct NEARConnector {
     _rpc_url: String,
     contract_id: Option<String>,
