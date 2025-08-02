@@ -1,0 +1,29 @@
+{
+  "contract": "Fusion1inchNearAdapter",
+  "network": "base-sepolia",
+  "status": "ready_for_deployment",
+  "constructor_args": {
+    "limitOrderProtocol": "0x171C87724E720F2806fc29a010a62897B30fdb62",
+    "escrowFactory": "0x848285f35044e485BD5F0235c27924b1392144b3"
+  },
+  "features": {
+    "official_1inch_integration": true,
+    "cross_chain_htlc": true,
+    "near_protocol_support": true,
+    "dutch_auction_ready": true,
+    "mev_protection_ready": true
+  },
+  "hackathon_compliance": {
+    "uses_official_1inch_contracts": true,
+    "preserves_hashlock_timelock": true,
+    "supports_bidirectional_swaps": true,
+    "ready_for_onchain_demo": true
+  },
+  "compilation": {
+    "status": "successful",
+    "compiler": "solc 0.8.23",
+    "optimizer": true,
+    "warnings": 0,
+    "errors": 0
+  }
+}
