@@ -2,7 +2,7 @@ use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::UnorderedMap;
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{env, log, near_bindgen, AccountId, Balance, Promise, PanicOnDefault};
+use near_sdk::{env, log, near_bindgen, AccountId, Balance, PanicOnDefault, Promise};
 use sha2::{Digest, Sha256};
 
 #[near_bindgen]
@@ -53,10 +53,10 @@ impl SimpleHTLC {
     ) -> String {
         let amount = env::attached_deposit();
         assert!(amount > 0, "Must attach deposit");
-        
+
         let sender = env::predecessor_account_id();
         let timeout = env::block_timestamp() + (timeout_seconds * 1_000_000_000);
-        
+
         let escrow_id = format!("escrow_{}", self.escrow_counter);
         let escrow = Escrow {
             sender: sender.clone(),
@@ -66,32 +66,37 @@ impl SimpleHTLC {
             timeout,
             is_active: true,
         };
-        
+
         self.escrows.insert(&escrow_id, &escrow);
         self.escrow_counter += 1;
-        
-        log!("Created escrow {} from {} to {} with amount {}", 
-             escrow_id, sender, recipient, amount);
-        
+
+        log!(
+            "Created escrow {} from {} to {} with amount {}",
+            escrow_id,
+            sender,
+            recipient,
+            amount
+        );
+
         escrow_id
     }
 
     pub fn claim(&mut self, escrow_id: String, secret: String) -> bool {
         let escrow = self.escrows.get(&escrow_id).expect("Escrow not found");
         assert!(escrow.is_active, "Escrow not active");
-        
+
         // Verify secret
         let hash = Self::hash_secret(&secret);
         assert_eq!(hash, escrow.secret_hash, "Invalid secret");
-        
+
         // Update escrow
         let mut updated_escrow = escrow.clone();
         updated_escrow.is_active = false;
         self.escrows.insert(&escrow_id, &updated_escrow);
-        
+
         // Transfer funds
         Promise::new(escrow.recipient.clone()).transfer(escrow.amount);
-        
+
         log!("Escrow {} claimed by {}", escrow_id, escrow.recipient);
         true
     }
@@ -103,15 +108,15 @@ impl SimpleHTLC {
             env::block_timestamp() > escrow.timeout,
             "Timeout not reached"
         );
-        
+
         // Update escrow
         let mut updated_escrow = escrow.clone();
         updated_escrow.is_active = false;
         self.escrows.insert(&escrow_id, &updated_escrow);
-        
+
         // Refund to sender
         Promise::new(escrow.sender.clone()).transfer(escrow.amount);
-        
+
         log!("Escrow {} refunded to {}", escrow_id, escrow.sender);
         true
     }
