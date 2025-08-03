@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use ethers::prelude::*;
 use ethers::types::transaction::eip2718::TypedTransaction;
+use ethers::types::Bytes;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -92,47 +93,75 @@ pub async fn submit_limit_order(
         order_data["eip712_hash"].as_str().unwrap_or("unknown")
     );
 
-    // Get network ID from chain ID
-    let network_id = match chain_id {
-        1 => 1,         // Ethereum mainnet
-        137 => 137,     // Polygon
-        42161 => 42161, // Arbitrum
-        10 => 10,       // Optimism
-        8453 => 8453,   // Base mainnet
-        84532 => 8453,  // Base Sepolia uses Base mainnet API
-        _ => {
-            return Err(anyhow!(
-                "Unsupported network for 1inch API: chain ID {}",
-                chain_id
-            ))
-        }
+    // Submit the order directly to 1inch Limit Order Protocol contract
+    println!("Submitting order to 1inch Limit Order Protocol contract...");
+
+    // Extract order data
+    let order = order_data["order"]
+        .as_object()
+        .ok_or_else(|| anyhow!("Invalid order data"))?;
+
+    let signature = order_data
+        .get("signature")
+        .and_then(|s| s.as_str())
+        .ok_or_else(|| anyhow!("Order must be signed before submission"))?;
+
+    // Parse signature bytes
+    let signature_bytes = Bytes::from(hex::decode(signature.trim_start_matches("0x"))?);
+
+    // Create the fillOrder transaction
+    let contract_address = Address::from_str(verifying_contract)?;
+    let contract = LimitOrderProtocol::new(contract_address, Arc::new(client.clone()));
+
+    // Prepare order struct for contract call
+    let order_struct = Order {
+        salt: U256::from_str(order["salt"].as_str().unwrap_or("0"))?,
+        maker_asset: Address::from_str(order["makerAsset"].as_str().unwrap_or("0x0"))?,
+        taker_asset: Address::from_str(order["takerAsset"].as_str().unwrap_or("0x0"))?,
+        maker: Address::from_str(order["maker"].as_str().unwrap_or("0x0"))?,
+        receiver: Address::from_str(order["receiver"].as_str().unwrap_or("0x0"))?,
+        allowed_sender: Address::from_str(order["allowedSender"].as_str().unwrap_or("0x0"))?,
+        making_amount: U256::from_str(order["makingAmount"].as_str().unwrap_or("0"))?,
+        taking_amount: U256::from_str(order["takingAmount"].as_str().unwrap_or("0"))?,
+        offsets: U256::from_str(order["offsets"].as_str().unwrap_or("0"))?,
+        interactions: Bytes::from(hex::decode(
+            order["interactions"]
+                .as_str()
+                .unwrap_or("0x")
+                .trim_start_matches("0x"),
+        )?),
     };
 
-    // Get API key from environment
-    let api_key = std::env::var("ONEINCH_API_KEY").ok();
+    // Empty bytes for interaction parameter
+    let interaction = Bytes::default();
 
-    // Create 1inch client
-    let oneinch_client = crate::oneinch_api::OneInchClient::new(network_id, api_key);
+    // Call fillOrder on the contract
+    let tx_call = contract
+        .fill_order(
+            order_struct,
+            signature_bytes,
+            interaction,
+            U256::zero(), // making amount (0 for full order)
+            U256::zero(), // taking amount (0 for full order)
+            U256::zero(), // threshold amount
+        )
+        .gas(500000u64); // Set gas limit
 
-    // Convert order data to 1inch format
-    let oneinch_order = crate::oneinch_api::convert_to_oneinch_format(order_data)?;
+    let tx = tx_call.send().await?;
+    let tx_hash = format!("{:?}", tx.tx_hash());
+    println!("Transaction submitted: {}", tx_hash);
 
-    // Submit order to 1inch
-    match oneinch_client.submit_order(&oneinch_order).await {
-        Ok(response) => {
-            println!("Order submitted to 1inch successfully!");
-            println!("Order hash: {}", response.order_hash);
-            println!("Status: {}", response.status);
-            println!("Created at: {}", response.created_at);
+    // Wait for confirmation
+    let receipt = tx.await?;
 
-            // Return a mock receipt for now since 1inch doesn't return a transaction receipt
-            // In a real implementation, you would monitor for the order execution
-            Err(anyhow!(
-                "Order submitted to 1inch. Monitor order hash {} for execution status",
-                response.order_hash
-            ))
-        }
-        Err(e) => Err(anyhow!("Failed to submit order to 1inch: {}", e)),
+    if let Some(receipt) = receipt {
+        println!("Order submitted successfully!");
+        println!("Transaction hash: {:?}", receipt.transaction_hash);
+        println!("Block number: {:?}", receipt.block_number);
+        println!("Gas used: {:?}", receipt.gas_used);
+        Ok(receipt)
+    } else {
+        Err(anyhow!("Failed to get transaction receipt"))
     }
 }
 
