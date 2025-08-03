@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background gradient -->
+    <defs>
+        <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+        </linearGradient>
+        
+        <linearGradient id="swapGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#627EEA;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#FFD700;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#00C08B;stop-opacity:1" />
+        </linearGradient>
+        
+        <!-- Drop shadow filter -->
+        <filter id="dropShadow">
+            <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.4"/>
+        </filter>
+    </defs>
+    
+    <!-- Background -->
+    <rect width="512" height="512" rx="100" fill="url(#bgGradient)"/>
+    
+    <!-- Center icon -->
+    <g transform="translate(256, 256)">
+        <!-- Infinity-like swap symbol -->
+        <path d="M -100 0 C -100 -60, -40 -60, 0 0 C 40 60, 100 60, 100 0 C 100 -60, 40 -60, 0 0 C -40 60, -100 60, -100 0" 
+              fill="none" 
+              stroke="url(#swapGradient)" 
+              stroke-width="40" 
+              stroke-linecap="round"
+              filter="url(#dropShadow)"/>
+        
+        <!-- Center dot -->
+        <circle cx="0" cy="0" r="25" fill="#FFD700"/>
+    </g>
+    
+    <!-- U letter (simplified UniteSwap logo) -->
+    <text x="256" y="420" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" 
+          font-size="120" font-weight="900" fill="white" text-anchor="middle" opacity="0.9">U</text>
+</svg>

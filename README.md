@@ -369,13 +369,14 @@ cd contracts/near-htlc && cargo test
 - **Base Sepolia**: 1inch Limit Order Protocol integration (default)
 - **NEAR Testnet**: Custom HTLC contracts at `htlc-v2.testnet`
 
-## 📊 Performance Metrics
+## 🏗️ Technical Implementation
 
-| Metric | Base Sepolia | NEAR Testnet |
-|--------|--------------|---------------|
-| Avg Swap Time | ~30s | ~5s |
-| Transaction Cost | ~$0.10 | <$0.01 |
-| Finality | 2-3 blocks | 2 blocks |
+### Implemented Features
+- **Cross-chain HTLC**: Secure atomic swaps between EVM and NEAR
+- **1inch Integration**: Compatible with official Limit Order Protocol
+- **Transaction Signing**: EIP-712 compliant order signing
+- **Real Transactions**: Actual blockchain transaction submission (not mocked)
+- **CLI Interface**: Comprehensive command-line tools
 
 ## 🏗️ Project Structure
 
@@ -419,6 +420,21 @@ UniteDefi/
   - Status: ✅ Live and tested
 
 ## 🎬 Demo
+
+### Pre-built Binary Demo (No Setup Required)
+
+Download and run the CLI without building from source:
+
+1. **Download the latest release** from [GitHub Releases](https://github.com/susumutomita/UniteDefi/releases)
+2. Extract and run:
+
+   ```bash
+   tar -xzf fusion-cli-*.tar.gz
+   cd fusion-cli-*
+   ./run.sh --help
+   ```
+
+For detailed instructions, see [RELEASES.md](./RELEASES.md).
 
 ### Quick Demo
 

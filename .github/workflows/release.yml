@@ -1,0 +1,124 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-upload:
+    name: Build and upload
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Linux
+          - build: linux
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+          # macOS Intel
+          - build: macos-intel
+            os: macos-latest
+            target: x86_64-apple-darwin
+
+          # macOS ARM
+          - build: macos-arm
+            os: macos-latest
+            target: aarch64-apple-darwin
+
+          # Windows
+          - build: windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build -p fusion-cli --release --target ${{ matrix.target }}
+
+      - name: Build archive
+        shell: bash
+        run: |
+          # Get the release version
+          VERSION="${GITHUB_REF#refs/tags/}"
+
+          # Set binary name and archive name
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            BINARY_NAME="fusion-cli.exe"
+          else
+            BINARY_NAME="fusion-cli"
+          fi
+
+          # Create staging directory
+          STAGING="fusion-cli-$VERSION-${{ matrix.target }}"
+          mkdir -p "$STAGING"
+
+          # Copy files
+          cp "target/${{ matrix.target }}/release/$BINARY_NAME" "$STAGING/"
+          cp README.md "$STAGING/"
+          cp LICENSE "$STAGING/"
+
+          # Copy environment template
+          cp .env.cli.example "$STAGING/.env.example"
+
+          # Create quick start script
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cat > "$STAGING/run.bat" << 'EOF'
+          @echo off
+          echo UniteSwap CLI - Cross-chain Atomic Swaps
+          echo ========================================
+          echo.
+          echo Please ensure you have set up your .env file with:
+          echo - ETHEREUM_RPC_URL
+          echo - PRIVATE_KEY
+          echo - NEAR_ACCOUNT (for NEAR operations)
+          echo.
+          fusion-cli.exe %*
+          EOF
+          else
+            cat > "$STAGING/run.sh" << 'EOF'
+          #!/bin/bash
+          echo "UniteSwap CLI - Cross-chain Atomic Swaps"
+          echo "========================================"
+          echo ""
+          echo "Please ensure you have set up your .env file with:"
+          echo "- ETHEREUM_RPC_URL"
+          echo "- PRIVATE_KEY"
+          echo "- NEAR_ACCOUNT (for NEAR operations)"
+          echo ""
+          ./fusion-cli "$@"
+          EOF
+            chmod +x "$STAGING/run.sh"
+            chmod +x "$STAGING/$BINARY_NAME"
+          fi
+
+          # Create archive
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a "$STAGING.zip" "$STAGING"
+            echo "ASSET=$STAGING.zip" >> $GITHUB_ENV
+          else
+            tar czf "$STAGING.tar.gz" "$STAGING"
+            echo "ASSET=$STAGING.tar.gz" >> $GITHUB_ENV
+          fi
+
+      - name: Upload to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ env.ASSET }}
+          asset_name: ${{ env.ASSET }}
+          asset_content_type: application/octet-stream
