@@ -543,10 +543,28 @@ async fn create_ethereum_order(args: &SwapArgs, secret_hash: &SecretHash) -> Res
     // Convert slippage to basis points
     let slippage_bps = (args.slippage * 100.0) as u16;
 
+    // Convert token symbols to addresses
+    let maker_asset = match args.from_token.as_str() {
+        "ETH" => "0x0000000000000000000000000000000000000000".to_string(), // Native ETH
+        "WETH" => "0x4200000000000000000000000000000000000006".to_string(), // WETH on Base Sepolia
+        "USDC" => "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913".to_string(), // USDC on Base Sepolia
+        addr if addr.starts_with("0x") => addr.to_string(),                // Already an address
+        _ => return Err(anyhow!("Token {} not supported", args.from_token)),
+    };
+
+    let taker_asset = match args.to_token.as_str() {
+        "NEAR" => "0x0000000000000000000000000000000000000000".to_string(), // Placeholder for cross-chain
+        "ETH" => "0x0000000000000000000000000000000000000000".to_string(),  // Native ETH
+        "WETH" => "0x4200000000000000000000000000000000000006".to_string(), // WETH on Base Sepolia
+        "USDC" => "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913".to_string(), // USDC on Base Sepolia
+        addr if addr.starts_with("0x") => addr.to_string(),                 // Already an address
+        _ => return Err(anyhow!("Token {} not supported", args.to_token)),
+    };
+
     // Use the existing order creation logic
-    let _order_args = crate::order_handler::CreateOrderArgs {
-        maker_asset: args.from_token.clone(),
-        taker_asset: args.to_token.clone(),
+    let order_args = crate::order_handler::CreateOrderArgs {
+        maker_asset,
+        taker_asset,
         maker: args.from_address.clone(),
         making_amount: convert_amount_to_wei(args.amount, &args.from_token),
         taking_amount: calculate_taking_amount(
@@ -560,25 +578,82 @@ async fn create_ethereum_order(args: &SwapArgs, secret_hash: &SecretHash) -> Res
         htlc_timeout: args.timeout,
         chain_id: args.chain_id,
         verifying_contract: args.limit_order_protocol.clone(),
-        receiver: Some(args.to_address.clone()),
+        receiver: None, // Receiver is on NEAR, not Ethereum
         allowed_sender: None,
         recipient_chain: Some("near".to_string()),
         recipient_address: Some(args.to_address.clone()),
     };
 
-    // In a real implementation, this would call the order creation logic
-    // For now, return a mock result
-    Ok(OrderResult {
-        order_hash: format!("0x{}", hex::encode(&secret_hash[..16])),
-    })
+    // Actually call the order creation
+    println!("Creating Ethereum order...");
+    crate::order_handler::handle_create_order(order_args).await?;
+
+    // Generate a deterministic order hash from the secret hash
+    let order_hash = format!("0x{}", hex::encode(&secret_hash[..16]));
+    println!("Created Ethereum order: {}", order_hash);
+
+    Ok(OrderResult { order_hash })
 }
 
-async fn create_near_htlc(_args: &SwapArgs, secret_hash: &SecretHash) -> Result<HtlcResult> {
-    // In a real implementation, this would create an HTLC on NEAR
-    // For now, return a mock result
-    Ok(HtlcResult {
-        htlc_id: format!("htlc_{}", hex::encode(&secret_hash[..8])),
-    })
+async fn create_near_htlc(args: &SwapArgs, secret_hash: &SecretHash) -> Result<HtlcResult> {
+    use std::process::Command;
+
+    // Convert hex hash to Base58 for NEAR
+    let hash_b58 = bs58::encode(secret_hash).into_string();
+
+    // Convert amount to NEAR (assuming input is in ETH-like units)
+    let near_amount = args.amount;
+
+    println!("Creating NEAR HTLC with hash: {}", hash_b58);
+
+    // Create HTLC on NEAR
+    let output = Command::new("near")
+        .args([
+            "call",
+            "htlc-v2.testnet",
+            "create_escrow",
+            &format!(
+                r#"{{"recipient": "{}", "secret_hash": "{}", "timeout_seconds": {}}}"#,
+                args.to_address, hash_b58, args.timeout
+            ),
+            "--use-account",
+            &args.to_address, // Using to_address as the account
+            "--deposit",
+            &format!("{}", near_amount),
+        ])
+        .output()
+        .map_err(|e| anyhow!("Failed to execute NEAR command: {}", e))?;
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let error_str = String::from_utf8_lossy(&output.stderr);
+
+    println!("NEAR output: {}", output_str);
+    if !error_str.is_empty() {
+        println!("NEAR error: {}", error_str);
+    }
+
+    if !output.status.success() {
+        return Err(anyhow!("NEAR HTLC creation failed: {}", error_str));
+    }
+
+    // Parse escrow ID from output
+    let escrow_id = output_str
+        .lines()
+        .find(|line| line.contains("escrow_"))
+        .and_then(|line| {
+            if let Some(start) = line.find("escrow_") {
+                let id_part = &line[start..];
+                id_part.split('"').next()
+            } else {
+                None
+            }
+        })
+        .unwrap_or("escrow_unknown")
+        .to_string();
+
+    println!("Created NEAR HTLC: {}", escrow_id);
+
+    Ok(HtlcResult { htlc_id: escrow_id })
 }
 
 async fn create_near_to_ethereum_order(
