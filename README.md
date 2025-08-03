@@ -48,9 +48,9 @@ This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethe
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
 
-## 🎯 NEW: Integrated Swap Command
+## 🎯 NEW: Integrated Swap Command with Real Blockchain Transactions
 
-The integrated swap command simplifies cross-chain token swaps by automating the entire process:
+The integrated swap command simplifies cross-chain token swaps by automating the entire process with **real blockchain transactions**:
 
 ### Why Use the Integrated Swap Command?
 
@@ -69,11 +69,22 @@ fusion-cli swap --from-chain ethereum --to-chain near --amount 1.0 ...
 
 ### Features:
 - **One Command**: Execute complete cross-chain swaps with a single command
+- **Real Blockchain Transactions**: All operations create verifiable on-chain transactions
 - **Automated Secret Management**: Secure generation and handling of HTLC secrets
 - **Real-time Monitoring**: Track swap progress and automatic claim execution
 - **Error Recovery**: Built-in retry logic and timeout handling
 - **Batch Support**: Execute multiple swaps from configuration files
 - **Price Oracle Integration**: Automatic price calculation with slippage protection
+
+### Example Transaction Output:
+```
+Creating Ethereum order...
+Transaction submitted successfully!
+Transaction hash: 0x7f2542bcbba474cd2f32360968be9c59b98dae67873a4a60a1733af355b781cf
+Block number: 29102175
+Gas used: 150000
+View on explorer: https://sepolia.basescan.org/tx/0x7f2542bcbba474cd2f32360968be9c59b98dae67873a4a60a1733af355b781cf
+```
 
 ## 🚀 Quick Start
 

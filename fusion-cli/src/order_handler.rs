@@ -203,6 +203,20 @@ pub async fn handle_create_order(args: CreateOrderArgs) -> Result<()> {
                                 println!("Transaction submitted successfully!");
                                 println!("Transaction hash: {:?}", receipt.transaction_hash);
                                 println!("Block number: {:?}", receipt.block_number);
+                                println!("Gas used: {:?}", receipt.gas_used);
+
+                                // Display explorer URL based on chain ID
+                                let explorer_url = match args.chain_id {
+                                    84532 => format!(
+                                        "https://sepolia.basescan.org/tx/{:?}",
+                                        receipt.transaction_hash
+                                    ),
+                                    _ => format!(
+                                        "https://etherscan.io/tx/{:?}",
+                                        receipt.transaction_hash
+                                    ),
+                                };
+                                println!("View on explorer: {}", explorer_url);
                             }
                             Err(e) => {
                                 println!("Warning: Transaction submission failed: {}", e);

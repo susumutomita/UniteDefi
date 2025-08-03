@@ -6,6 +6,7 @@
 - [x] **Ethereum Contracts Deployed**
   - Escrow Factory: `0x848285f35044e485BD5F0235c27924b1392144b3` on Base Sepolia
   - 1inch Limit Order Protocol integration complete
+  - **Real Transaction Proof**: [0x7f2542bcbba474cd2f32360968be9c59b98dae67873a4a60a1733af355b781cf](https://sepolia.basescan.org/tx/0x7f2542bcbba474cd2f32360968be9c59b98dae67873a4a60a1733af355b781cf)
 
 - [x] **NEAR Contracts Deployed**
   - HTLC Contract: `htlc-v2.testnet` (fully operational)
