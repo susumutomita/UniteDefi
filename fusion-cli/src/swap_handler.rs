@@ -153,7 +153,7 @@ struct ValidationStatus {
 struct SwapResult {
     swap_id: String,
     status: String,
-    secret: Option<String>,
+    // Security: Secret field removed to prevent exposure in logs
     secret_hash: String,
     htlc_id: Option<String>,
     order_hash: Option<String>,
@@ -478,7 +478,6 @@ async fn execute_swap(args: &SwapArgs, _plan: &SwapPlan) -> Result<SwapResult> {
             Ok(SwapResult {
                 swap_id,
                 status: "pending".to_string(),
-                secret: Some(hex::encode(secret)),
                 secret_hash: hex::encode(secret_hash),
                 htlc_id: Some(htlc_result.htlc_id),
                 order_hash: Some(order_result.order_hash),
@@ -517,7 +516,6 @@ async fn execute_swap(args: &SwapArgs, _plan: &SwapPlan) -> Result<SwapResult> {
             Ok(SwapResult {
                 swap_id,
                 status: "pending".to_string(),
-                secret: Some(hex::encode(secret)),
                 secret_hash: hex::encode(secret_hash),
                 htlc_id: Some(htlc_result.htlc_id),
                 order_hash: Some(order_result.order_hash),
@@ -582,6 +580,8 @@ async fn create_ethereum_order(args: &SwapArgs, secret_hash: &SecretHash) -> Res
         allowed_sender: None,
         recipient_chain: Some("near".to_string()),
         recipient_address: Some(args.to_address.clone()),
+        sign: false,   // We'll sign separately in the swap flow
+        submit: false, // We'll submit separately in the swap flow
     };
 
     // Actually call the order creation
@@ -598,28 +598,65 @@ async fn create_ethereum_order(args: &SwapArgs, secret_hash: &SecretHash) -> Res
 async fn create_near_htlc(args: &SwapArgs, secret_hash: &SecretHash) -> Result<HtlcResult> {
     use std::process::Command;
 
+    // Validate NEAR address to prevent injection
+    validate_near_address(&args.to_address)?;
+
+    // Validate timeout is reasonable
+    if args.timeout == 0 || args.timeout > 86400 * 7 {
+        return Err(anyhow!(
+            "Invalid timeout: must be between 1 second and 7 days"
+        ));
+    }
+
+    // Validate amount is positive and reasonable
+    if args.amount <= 0.0 || args.amount > 1000000.0 {
+        return Err(anyhow!("Invalid amount: must be between 0 and 1,000,000"));
+    }
+
     // Convert hex hash to Base58 for NEAR
     let hash_b58 = bs58::encode(secret_hash).into_string();
 
-    // Convert amount to NEAR (assuming input is in ETH-like units)
-    let near_amount = args.amount;
+    // Convert amount to NEAR units properly
+    // If from_chain is ethereum and to_chain is near, the amount is in source token units
+    let near_amount = if args.from_chain == "near" {
+        args.amount // Already in NEAR
+    } else {
+        // Convert from source token to NEAR using price oracle
+        let oracle = MockPriceOracle::new();
+        let converter = PriceConverter::new(oracle);
+        let source_amount_wei = convert_amount_to_wei(args.amount, &args.from_token);
+        let near_amount_yocto = converter
+            .convert_amount(
+                source_amount_wei,
+                &args.from_token,
+                get_token_decimals(&args.from_token),
+                "NEAR",
+                24,
+            )
+            .await?;
+        convert_wei_to_amount(near_amount_yocto, "NEAR")
+    };
 
     println!("Creating NEAR HTLC with hash: {}", hash_b58);
 
-    // Create HTLC on NEAR
+    // Create JSON payload using serde_json to prevent injection
+    let escrow_args = json!({
+        "recipient": args.to_address,
+        "secret_hash": hash_b58,
+        "timeout_seconds": args.timeout
+    });
+
+    // Create HTLC on NEAR with proper JSON serialization
     let output = Command::new("near")
         .args([
             "call",
             "htlc-v2.testnet",
             "create_escrow",
-            &format!(
-                r#"{{"recipient": "{}", "secret_hash": "{}", "timeout_seconds": {}}}"#,
-                args.to_address, hash_b58, args.timeout
-            ),
+            &escrow_args.to_string(),
             "--use-account",
-            &args.to_address, // Using to_address as the account
+            &args.to_address,
             "--deposit",
-            &format!("{}", near_amount),
+            &near_amount.to_string(),
         ])
         .output()
         .map_err(|e| anyhow!("Failed to execute NEAR command: {}", e))?;
@@ -636,20 +673,20 @@ async fn create_near_htlc(args: &SwapArgs, secret_hash: &SecretHash) -> Result<H
         return Err(anyhow!("NEAR HTLC creation failed: {}", error_str));
     }
 
-    // Parse escrow ID from output
-    let escrow_id = output_str
+    // Parse escrow ID from output using regex for safety
+    let escrow_id = if let Some(captures) = output_str
         .lines()
         .find(|line| line.contains("escrow_"))
         .and_then(|line| {
-            if let Some(start) = line.find("escrow_") {
-                let id_part = &line[start..];
-                id_part.split('"').next()
-            } else {
-                None
-            }
-        })
-        .unwrap_or("escrow_unknown")
-        .to_string();
+            // Match pattern: escrow_[number]
+            let re = regex::Regex::new(r"escrow_\d+").ok()?;
+            re.find(line).map(|m| m.as_str().to_string())
+        }) {
+        captures
+    } else {
+        // If we can't parse the escrow ID, fail rather than using unknown
+        return Err(anyhow!("Failed to parse escrow ID from NEAR output"));
+    };
 
     println!("Created NEAR HTLC: {}", escrow_id);
 
@@ -683,12 +720,48 @@ async fn create_near_to_ethereum_order(
     })
 }
 
-fn convert_amount_to_wei(amount: f64, token: &str) -> u128 {
-    // Simple conversion - in real implementation would use proper token decimals
+/// Get the decimal places for a token
+fn get_token_decimals(token: &str) -> u8 {
     match token {
-        "NEAR" => (amount * 10f64.powi(24)) as u128,
-        _ => (amount * 10f64.powi(18)) as u128, // Default to 18 decimals for EVM tokens
+        "NEAR" => 24,
+        "USDC" => 6,
+        "USDT" => 6,
+        "DAI" => 18,
+        "ETH" | "WETH" => 18,
+        addr if addr.starts_with("0x") => 18, // Default for unknown ERC20 tokens
+        _ => 18,                              // Default
     }
+}
+
+/// Convert human-readable amount to smallest unit (wei/yocto)
+fn convert_amount_to_wei(amount: f64, token: &str) -> u128 {
+    let decimals = get_token_decimals(token);
+
+    // Handle edge case for very large decimals (like NEAR's 24)
+    // Split calculation to avoid floating point overflow
+    if decimals > 18 {
+        let extra_decimals = decimals - 18;
+        let base_multiplier = 10u128.pow(18);
+        let extra_multiplier = 10u128.pow(extra_decimals as u32);
+
+        // First scale by 10^18, then by the remaining decimals
+        let base_scaled = (amount * (base_multiplier as f64)).round() as u128;
+        base_scaled.saturating_mul(extra_multiplier)
+    } else {
+        let multiplier = 10u128.pow(decimals as u32);
+        let scaled = amount * (multiplier as f64);
+
+        // Round to nearest integer to handle floating point precision
+        scaled.round() as u128
+    }
+}
+
+/// Convert smallest unit (wei/yocto) to human-readable amount
+fn convert_wei_to_amount(wei: u128, token: &str) -> f64 {
+    let decimals = get_token_decimals(token);
+    let divisor = 10u128.pow(decimals as u32);
+
+    (wei as f64) / (divisor as f64)
 }
 
 async fn calculate_taking_amount(
@@ -701,15 +774,8 @@ async fn calculate_taking_amount(
     let oracle = MockPriceOracle::new();
     let converter = PriceConverter::new(oracle);
 
-    let from_decimals = match from_token {
-        "NEAR" => 24,
-        _ => 18,
-    };
-
-    let to_decimals = match to_token {
-        "NEAR" => 24,
-        _ => 6, // USDC
-    };
+    let from_decimals = get_token_decimals(from_token);
+    let to_decimals = get_token_decimals(to_token);
 
     let from_amount = convert_amount_to_wei(amount, from_token);
     let expected_amount = converter
@@ -765,10 +831,84 @@ async fn monitor_and_claim(args: &SwapArgs, result: &SwapResult) -> Result<()> {
         json!({
             "status": "Monitoring complete",
             "result": "Manual claim required",
-            "secret": result.secret.as_ref().unwrap(),
+            // Security: Secret removed from output to prevent exposure
             "instructions": result.next_steps
         })
     );
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_decimals() {
+        assert_eq!(get_token_decimals("NEAR"), 24);
+        assert_eq!(get_token_decimals("ETH"), 18);
+        assert_eq!(get_token_decimals("WETH"), 18);
+        assert_eq!(get_token_decimals("USDC"), 6);
+        assert_eq!(get_token_decimals("USDT"), 6);
+        assert_eq!(get_token_decimals("DAI"), 18);
+        assert_eq!(get_token_decimals("0x1234567890abcdef"), 18); // Unknown token
+    }
+
+    #[test]
+    fn test_amount_conversion() {
+        // Test ETH conversion (18 decimals)
+        assert_eq!(convert_amount_to_wei(1.0, "ETH"), 1_000_000_000_000_000_000);
+        assert_eq!(convert_amount_to_wei(0.001, "ETH"), 1_000_000_000_000_000);
+
+        // Test NEAR conversion (24 decimals)
+        assert_eq!(
+            convert_amount_to_wei(1.0, "NEAR"),
+            1_000_000_000_000_000_000_000_000
+        );
+        assert_eq!(
+            convert_amount_to_wei(0.001, "NEAR"),
+            1_000_000_000_000_000_000_000
+        );
+
+        // Test USDC conversion (6 decimals)
+        assert_eq!(convert_amount_to_wei(1.0, "USDC"), 1_000_000);
+        assert_eq!(convert_amount_to_wei(0.001, "USDC"), 1_000);
+        assert_eq!(convert_amount_to_wei(1000.0, "USDC"), 1_000_000_000);
+    }
+
+    #[test]
+    fn test_wei_to_amount_conversion() {
+        // Test ETH conversion
+        assert_eq!(convert_wei_to_amount(1_000_000_000_000_000_000, "ETH"), 1.0);
+        assert_eq!(convert_wei_to_amount(1_000_000_000_000_000, "ETH"), 0.001);
+
+        // Test NEAR conversion
+        assert_eq!(
+            convert_wei_to_amount(1_000_000_000_000_000_000_000_000, "NEAR"),
+            1.0
+        );
+
+        // Test USDC conversion
+        assert_eq!(convert_wei_to_amount(1_000_000, "USDC"), 1.0);
+        assert_eq!(convert_wei_to_amount(1_000, "USDC"), 0.001);
+    }
+
+    #[test]
+    fn test_precision_handling() {
+        // Test that we handle floating point precision correctly
+        let amount = 0.123456789;
+        let wei = convert_amount_to_wei(amount, "ETH");
+        let back = convert_wei_to_amount(wei, "ETH");
+
+        // Should be close within floating point precision
+        assert!((amount - back).abs() < 0.000000001);
+
+        // Test with USDC (fewer decimals)
+        let usdc_amount = 1234.56;
+        let usdc_wei = convert_amount_to_wei(usdc_amount, "USDC");
+        assert_eq!(usdc_wei, 1_234_560_000); // 1234.56 * 10^6
+
+        let usdc_back = convert_wei_to_amount(usdc_wei, "USDC");
+        assert!((usdc_amount - usdc_back).abs() < 0.01);
+    }
 }

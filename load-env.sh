@@ -3,18 +3,35 @@
 
 if [ -f .env ]; then
   # Export each non-empty line that doesn't start with #
-  export $(grep -v '^#' .env | xargs)
+  # Security: Use set -a to avoid exposing variables in command line
+  set -a
+  source .env
+  set +a
+  
   echo "✅ Environment variables loaded from .env"
   
-  # Show loaded variables (hiding sensitive data)
-  echo "📋 Loaded variables:"
-  echo "  - ETHEREUM_RPC_URL: $ETHEREUM_RPC_URL"
-  echo "  - ETHEREUM_ADDRESS: $ETHEREUM_ADDRESS"
-  echo "  - ETHEREUM_CHAIN_ID: $ETHEREUM_CHAIN_ID"
-  echo "  - NEAR_ACCOUNT_ID: $NEAR_ACCOUNT_ID"
-  echo "  - NEAR_CONTRACT_ID: $NEAR_CONTRACT_ID"
-  echo "  - LIMIT_ORDER_CONTRACT: $LIMIT_ORDER_CONTRACT"
-  echo "  - PRIVATE_KEY: [HIDDEN]"
+  # Security: Only show that variables are loaded, not their values
+  echo "📋 Environment variables loaded successfully"
+  echo "  - Configuration: .env"
+  echo "  - Status: Ready"
+  
+  # Security: Validate required variables exist without showing values
+  required_vars=("ETHEREUM_RPC_URL" "ETHEREUM_ADDRESS" "NEAR_ACCOUNT_ID")
+  missing_vars=()
+  
+  for var in "${required_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+      missing_vars+=("$var")
+    fi
+  done
+  
+  if [ ${#missing_vars[@]} -ne 0 ]; then
+    echo "❌ Missing required environment variables:"
+    printf '  - %s\n' "${missing_vars[@]}"
+    exit 1
+  fi
+  
+  echo "  - All required variables: ✓"
 else
   echo "❌ .env file not found"
   exit 1
