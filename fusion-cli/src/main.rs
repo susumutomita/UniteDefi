@@ -5,8 +5,9 @@ use serde_json::json;
 use std::time::Duration;
 
 mod ethereum_tx;
+mod htlc_monitor;
 mod near_order_handler;
-mod oneinch_api;
+// mod oneinch_api; // Removed: Not using 1inch API per hackathon requirements
 mod order_handler;
 mod order_management;
 mod relay_order_handler;

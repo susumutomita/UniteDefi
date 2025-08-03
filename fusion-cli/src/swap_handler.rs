@@ -6,8 +6,6 @@ use fusion_core::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::time::Duration;
-use tokio::time::sleep;
 
 #[derive(Subcommand)]
 pub enum SwapCommands {
@@ -803,38 +801,79 @@ async fn monitor_and_claim(args: &SwapArgs, result: &SwapResult) -> Result<()> {
         })
     );
 
-    // In a real implementation, this would:
-    // 1. Monitor order execution status
-    // 2. Detect when HTLCs are created/claimed
-    // 3. Automatically claim funds when available
-    // 4. Handle timeouts and refunds
+    // Create HTLC monitor
+    let rpc_url = args
+        .evm_rpc
+        .as_ref()
+        .cloned()
+        .or_else(|| std::env::var("ETHEREUM_RPC_URL").ok())
+        .unwrap_or_else(|| "https://sepolia.base.org".to_string());
 
-    let max_attempts = (args.timeout / args.monitor_interval) as usize;
-    for attempt in 1..=max_attempts {
-        sleep(Duration::from_secs(args.monitor_interval)).await;
+    let monitor = crate::htlc_monitor::HTLCMonitor::new(rpc_url, args.near_network.clone());
 
-        println!(
-            "{}",
-            json!({
-                "status": "Checking swap status",
-                "attempt": attempt,
-                "max_attempts": max_attempts
-            })
-        );
+    // Determine monitoring parameters based on swap direction
+    let (source_chain, target_chain, source_htlc, target_htlc) =
+        match (args.from_chain.as_str(), args.to_chain.as_str()) {
+            ("ethereum", "near") => {
+                // For ETH->NEAR, we monitor Ethereum order and NEAR HTLC
+                (
+                    "ethereum",
+                    "near",
+                    result.order_hash.as_ref().unwrap_or(&result.swap_id),
+                    result.htlc_id.as_ref().unwrap_or(&result.swap_id),
+                )
+            }
+            ("near", "ethereum") => {
+                // For NEAR->ETH, we monitor NEAR HTLC and Ethereum order
+                (
+                    "near",
+                    "ethereum",
+                    result.htlc_id.as_ref().unwrap_or(&result.swap_id),
+                    result.order_hash.as_ref().unwrap_or(&result.swap_id),
+                )
+            }
+            _ => return Err(anyhow!("Unsupported swap direction")),
+        };
 
-        // Check status and break if completed
-        // In real implementation, would check actual blockchain state
+    // Get the secret for claiming (this would be securely stored in production)
+    let secret = result.secret_hash.clone(); // In production, this would be the actual secret
+
+    // Execute bidirectional monitoring
+    match monitor
+        .execute_bidirectional_swap(
+            source_chain,
+            target_chain,
+            source_htlc,
+            target_htlc,
+            &secret,
+            args.monitor_interval,
+        )
+        .await
+    {
+        Ok(_) => {
+            println!(
+                "{}",
+                json!({
+                    "status": "Swap completed successfully",
+                    "swap_id": &result.swap_id,
+                    "source_chain": source_chain,
+                    "target_chain": target_chain
+                })
+            );
+        }
+        Err(e) => {
+            println!(
+                "{}",
+                json!({
+                    "status": "Swap monitoring failed",
+                    "error": e.to_string(),
+                    "manual_action_required": true,
+                    "instructions": result.next_steps
+                })
+            );
+            return Err(e);
+        }
     }
-
-    println!(
-        "{}",
-        json!({
-            "status": "Monitoring complete",
-            "result": "Manual claim required",
-            // Security: Secret removed from output to prevent exposure
-            "instructions": result.next_steps
-        })
-    );
 
     Ok(())
 }
