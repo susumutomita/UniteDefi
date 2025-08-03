@@ -355,6 +355,7 @@ cd contracts/near-htlc && cargo test
 ```
 
 ### Testnet Deployments
+
 - **Ethereum**: Sepolia testnet - 1inch Limit Order Protocol integration
 - **NEAR**: Testnet (testnet.near.org) - Custom HTLC contracts
 - **Base**: Base Sepolia testnet - Default deployment target
@@ -366,18 +367,6 @@ cd contracts/near-htlc && cargo test
 | Avg Swap Time | 15s | 2s | 5s |
 | Gas Cost | $5-20 | <$0.01 | $0.10-1 |
 | Finality | 12 blocks | 2 blocks | 2 blocks |
-
-## 📚 Documentation
-
-- [Quick Start Guide](docs/QUICK_START.md) - 30分で始めるクロスチェーンスワップ
-- [Implementation Guide](docs/CROSS_CHAIN_IMPLEMENTATION_GUIDE.md) - 詳細な実装ガイド
-- [Implementation Roadmap](docs/IMPLEMENTATION_ROADMAP.md) - ETHGlobal Unite向けロードマップ
-- [Command Reference](docs/COMMANDS.md) - よく使うコマンド集
-
-### 📖 Additional Docs
-- [NEAR HTLC Documentation](contracts/near-htlc/README.md)
-- [Security Test Summary](contracts/near-htlc/SECURITY_TEST_SUMMARY.md)
-- [Research Summary](contracts/near-htlc/RESEARCH_SUMMARY.md)
 
 ## 🏗️ Project Structure
 ```
@@ -440,25 +429,7 @@ cat demo/DEMO_GUIDE.md
 ## 🤝 Team
 
 - **Lead Developer**: [Susumu Tomita](https://susumutomita.netlify.app/)
-- **Blockchain Engineer**: [Team Member]
-- **Security Auditor**: [Team Member]
 
 ## 📜 License
 
 MIT License - see LICENSE file for details
-
-## 🔗 Resources
-
-- [1inch Fusion+ Documentation](https://docs.1inch.io/)
-- [Demo Video](https://youtube.com/your-demo)
-- [Technical Deep Dive](./docs/Fusion-Plus-Technical-Guide.md)
-- [Winning Ideas](./docs/優勝アイデア.md)
-- [Workshop Notes](https://www.youtube.com/watch?v=W2xCf-TCnwc)
-- [DeepWiki](https://deepwiki.com/susumutomita/UniteDefi)
-
-## 🚧 Future Roadmap
-
-1. **Phase 1**: Additional chain support (Aptos, Sui)
-2. **Phase 2**: Web interface and SDK
-3. **Phase 3**: Integration with 1inch production infrastructure
-4. **Phase 4**: Decentralized relayer network
