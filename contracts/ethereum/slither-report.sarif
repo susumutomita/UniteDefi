@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Slither",
+          "informationUri": "https://github.com/crytic/slither",
+          "version": "0.11.0",
+          "rules": [
+            {
+              "id": "1-1-unused-return",
+              "name": "unused-return",
+              "properties": {
+                "precision": "high",
+                "security-severity": "4.0"
+              },
+              "shortDescription": {
+                "text": "Unused return"
+              },
+              "help": {
+                "text": "Ensure that all the return values of the function calls are used."
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "1-1-unused-return",
+          "message": {
+            "text": "Fusion1inchNearAdapter.submitOrderTo1inch(IOrderMixin.Order,bytes32,bytes32,uint256,TakerTraits) (src/Fusion1inchNearAdapter.sol#264-272) ignores return value by limitOrderProtocol.fillOrder{value: msg.value}(order,r,vs,amount,takerTraits) (src/Fusion1inchNearAdapter.sol#271)\n",
+            "markdown": "[Fusion1inchNearAdapter.submitOrderTo1inch(IOrderMixin.Order,bytes32,bytes32,uint256,TakerTraits)](src/Fusion1inchNearAdapter.sol#L264-L272) ignores return value by [limitOrderProtocol.fillOrder{value: msg.value}(order,r,vs,amount,takerTraits)](src/Fusion1inchNearAdapter.sol#L271)\n"
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/Fusion1inchNearAdapter.sol"
+                },
+                "region": {
+                  "startLine": 264,
+                  "endLine": 272
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "id": "6421ccdd3ea913eff9b0ec3a4aeefe8ffee2b6c0aca22e9ac1ecd9d3eb7bacef"
+          }
+        }
+      ]
+    }
+  ]
+}

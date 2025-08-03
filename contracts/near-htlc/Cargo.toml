@@ -1,4 +1,3 @@
-workspace = { members = ["hash_test"] }
 [package]
 name = "near-htlc"
 version = "0.1.0"

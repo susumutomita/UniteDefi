@@ -14,10 +14,7 @@ contract DeployFusion1inchAdapter is Script {
         address escrowFactory = 0x848285f35044e485BD5F0235c27924b1392144b3;
 
         // Deploy Fusion1inchNearAdapter
-        Fusion1inchNearAdapter adapter = new Fusion1inchNearAdapter(
-            limitOrderProtocol,
-            escrowFactory
-        );
+        Fusion1inchNearAdapter adapter = new Fusion1inchNearAdapter(limitOrderProtocol, escrowFactory);
 
         vm.stopBroadcast();
 
