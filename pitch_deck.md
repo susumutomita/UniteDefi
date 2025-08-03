@@ -41,9 +41,7 @@ style: |
 
 ## First EVM ↔️ NEAR Atomic Swaps
 
-**ETHGlobal Unite 2024**
-
-Official 1inch Fusion+ Extension
+1inch Fusion+ Extension
 
 ---
 
@@ -76,7 +74,7 @@ Official 1inch Fusion+ Extension
 # Live Demo
 
 1. **Create HTLC** → Get secret
-2. **Create Order** → 1inch protocol  
+2. **Create Order** → 1inch protocol
 3. **Execute Swap** → Atomic exchange
 4. **Auto Claim** → Complete!
 
@@ -102,8 +100,6 @@ fusion-cli order create --htlc-secret-hash...
 
 # Thank You!
 
-## UniteSwap - First EVM ↔️ NEAR Bridge
+## UniteSwap - EVM ↔️ NEAR Bridge
 
 **GitHub**: github.com/susumutomita/UniteDefi
-
-**ETHGlobal Unite 2024**

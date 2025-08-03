@@ -1,18 +1,17 @@
-# UniteDefi Pitch Deck Script (4 minutes)
+# UniteSwap Pitch Deck Script (4 minutes)
 
 ## Time Allocation:
 - Slide 1: Title (10 seconds)
 - Slide 2: Problem (30 seconds) 
-- Slide 3: How It Works (30 seconds)
-- Slide 4: Live Demo (2 minutes)
-- Slide 5: Technical Highlights (30 seconds)
-- Slide 6: Thank You & Q&A (20 seconds)
+- Slide 3: How It Works (40 seconds)
+- Slide 4: Live Demo (2 minutes 20 seconds)
+- Slide 5: Technical Implementation & Thank You (20 seconds)
 
 ---
 
 ## Slide 1: Title (10 seconds)
 
-**"Hi everyone! I'm here to show you UniteDefi - the first trustless atomic swap solution between EVM and NEAR chains, powered by HTLC technology and 1inch Fusion protocol."**
+**"Hi everyone! I'm here to show you UniteSwap - the first trustless atomic swap solution between EVM and NEAR chains, powered by HTLC technology and 1inch Fusion protocol."**
 
 ---
 
@@ -80,29 +79,15 @@ fusion-cli order create --from-chain near --to-chain ethereum --amount 1000 --to
 
 ---
 
-## Slide 5: Technical Highlights (30 seconds)
+## Slide 5: Technical Implementation & Thank You (20 seconds)
 
-**"Let me quickly highlight what makes this technically special:**
+**"Here's what powers UniteSwap:**
 
-**Security - we provide atomic guarantees with time-locked refunds and SHA-256 verification.**
+**Official 1inch integration on Ethereum, custom HTLC on NEAR, and our Rust CLI orchestrating everything.**
 
-**Performance - concurrent chain monitoring, gas-optimized contracts, and sub-30-second execution.**
+**That's UniteSwap - the first production-ready NEAR to EVM atomic swap solution.**
 
-**Built with cutting-edge tech - Rust for the core engine, Solidity and NEAR SDK for contracts, and real-time WebSocket connections.**
-
-**Everything is open source and ready to use."**
-
----
-
-## Slide 6: Thank You (20 seconds)
-
-**"That's UniteDefi - the first production-ready NEAR to EVM atomic swap solution.**
-
-**Clone our repo, run make demo, and try it yourself.**
-
-**All the code and documentation is on GitHub.**
-
-**Thank you! Any questions?"**
+**Clone our repo on GitHub and try it yourself. Thank you!"**
 
 ---
 
