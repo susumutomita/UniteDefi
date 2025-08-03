@@ -1,0 +1,27 @@
+{
+  "filter_paths": [
+    "lib/",
+    "test/",
+    "script/",
+    "out/",
+    "cache/"
+  ],
+  "exclude_informational": true,
+  "exclude_low": true,
+  "exclude_medium": false,
+  "exclude_high": false,
+  "exclude_detectors": [
+    "pragma",
+    "solc-version",
+    "naming-convention",
+    "external-function"
+  ],
+  "json": "slither-report.json",
+  "sarif": "slither-report.sarif",
+  "checklist": true,
+  "markdown": "slither-report.md",
+  "exclude_dependencies": true,
+  "include_files": [
+    "src/"
+  ]
+}

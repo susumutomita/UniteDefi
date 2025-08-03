@@ -1,0 +1,133 @@
+name: Smart Contracts CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/ethereum/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/ethereum/**'
+
+env:
+  FOUNDRY_PROFILE: default
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Foundry project
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/ethereum
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install Node.js dependencies
+        run: |
+          cd ../../
+          npm install
+
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+
+      - name: Run Forge fmt check
+        run: |
+          forge fmt --check
+        id: fmt
+
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test
+
+      - name: Run Forge gas report
+        run: |
+          forge test --gas-report
+        id: gas-report
+
+      - name: Install Slither
+        run: |
+          pip3 install slither-analyzer
+          pip3 install solc-select
+          solc-select install 0.8.23
+          solc-select use 0.8.23
+
+      - name: Run Slither security analysis
+        run: |
+          slither src/ --filter-paths "lib/|test/" --exclude-informational --exclude-low
+        id: slither
+        continue-on-error: true
+
+      - name: Run forge coverage
+        run: |
+          forge coverage --report lcov
+        id: coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: contracts/ethereum/lcov.info
+          flags: smart-contracts
+          name: smart-contracts-coverage
+
+  lint:
+    name: Solidity Linting
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/ethereum
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm install -g solhint
+          cd ../../
+          npm install
+
+      - name: Run Solhint
+        run: |
+          solhint 'src/**/*.sol'
+        continue-on-error: true
+
+  security:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/ethereum
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install Mythril
+        run: |
+          pip3 install mythril
+
+      - name: Run Mythril analysis
+        run: |
+          myth analyze src/Fusion1inchNearAdapter.sol --solc-json remappings.json
+        continue-on-error: true

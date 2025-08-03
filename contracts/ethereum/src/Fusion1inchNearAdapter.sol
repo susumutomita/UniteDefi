@@ -64,11 +64,7 @@ contract Fusion1inchNearAdapter is IPostInteraction {
         string nearRecipient
     );
 
-    event NearToEthereumSecretRevealed(
-        bytes32 indexed orderHash,
-        bytes32 secret,
-        address beneficiary
-    );
+    event NearToEthereumSecretRevealed(bytes32 indexed orderHash, bytes32 secret, address beneficiary);
 
     constructor(address _limitOrderProtocol, address _escrowFactory) {
         limitOrderProtocol = IOrderMixin(_limitOrderProtocol);
@@ -94,10 +90,7 @@ contract Fusion1inchNearAdapter is IPostInteraction {
         Timelocks timelocks
     ) external payable returns (bytes32 orderHash, address escrowSrc) {
         // Validate order has required post-interaction flag
-        require(
-            order.makerTraits.needPostInteractionCall(),
-            "Order must have post-interaction flag for cross-chain"
-        );
+        require(order.makerTraits.needPostInteractionCall(), "Order must have post-interaction flag for cross-chain");
 
         // Calculate order hash using official 1inch method
         orderHash = limitOrderProtocol.hashOrder(order);
@@ -126,14 +119,7 @@ contract Fusion1inchNearAdapter is IPostInteraction {
 
         escrowSrc = escrowFactory.addressOfEscrowSrc(immutables);
 
-        emit NearSwapInitiated(
-            orderHash,
-            order.maker.get(),
-            nearRecipient,
-            nearTokenContract,
-            nearAmount,
-            secretHash
-        );
+        emit NearSwapInitiated(orderHash, order.maker.get(), nearRecipient, nearTokenContract, nearAmount, secretHash);
 
         return (orderHash, escrowSrc);
     }
@@ -143,8 +129,8 @@ contract Fusion1inchNearAdapter is IPostInteraction {
      * @dev Called automatically after order fill to trigger NEAR coordination
      */
     function postInteraction(
-        IOrderMixin.Order calldata /* order */,
-        bytes calldata /* extension */,
+        IOrderMixin.Order calldata, /* order */
+        bytes calldata, /* extension */
         bytes32 orderHash,
         address taker,
         uint256 makingAmount,
@@ -152,22 +138,13 @@ contract Fusion1inchNearAdapter is IPostInteraction {
         uint256 remainingMakingAmount,
         bytes calldata /* extraData */
     ) external override {
-        require(
-            msg.sender == address(limitOrderProtocol),
-            "Only limit order protocol"
-        );
+        require(msg.sender == address(limitOrderProtocol), "Only limit order protocol");
 
         NearSwapData storage swapData = nearSwapData[orderHash];
         require(swapData.isActive, "No active NEAR swap");
 
         // Emit event for NEAR relayers to detect and create corresponding HTLC
-        emit EthereumToNearSwapFilled(
-            orderHash,
-            taker,
-            makingAmount,
-            takingAmount,
-            swapData.nearRecipient
-        );
+        emit EthereumToNearSwapFilled(orderHash, taker, makingAmount, takingAmount, swapData.nearRecipient);
 
         // If completely filled, trigger destination chain escrow creation
         if (remainingMakingAmount == 0) {
@@ -180,10 +157,7 @@ contract Fusion1inchNearAdapter is IPostInteraction {
      * @notice Creates destination escrow on NEAR protocol
      * @dev This would typically be called by a relayer
      */
-    function _triggerNearEscrowCreation(
-        bytes32 orderHash,
-        NearSwapData storage swapData
-    ) internal {
+    function _triggerNearEscrowCreation(bytes32 orderHash, NearSwapData storage swapData) internal {
         // Emit detailed event for NEAR relayers
         // Real implementation would use cross-chain messaging
         emit NearSwapInitiated(
@@ -238,10 +212,7 @@ contract Fusion1inchNearAdapter is IPostInteraction {
         require(swapData.isActive, "Swap not active");
 
         // Verify secret matches hash
-        require(
-            keccak256(abi.encodePacked(secret)) == swapData.secretHash,
-            "Invalid secret"
-        );
+        require(keccak256(abi.encodePacked(secret)) == swapData.secretHash, "Invalid secret");
 
         emit NearToEthereumSecretRevealed(orderHash, secret, msg.sender);
 
@@ -253,11 +224,11 @@ contract Fusion1inchNearAdapter is IPostInteraction {
      * @notice Helper to create MakerTraits for cross-chain orders
      * @dev Ensures proper flags for 1inch cross-chain integration
      */
-    function createNearCrossChainMakerTraits(
-        uint256 expiration,
-        address allowedSender,
-        bool allowPartialFills
-    ) external pure returns (MakerTraits) {
+    function createNearCrossChainMakerTraits(uint256 expiration, address allowedSender, bool allowPartialFills)
+        external
+        pure
+        returns (MakerTraits)
+    {
         uint256 traits = 0;
 
         // Set post-interaction flag (required for cross-chain)
@@ -296,39 +267,22 @@ contract Fusion1inchNearAdapter is IPostInteraction {
         bytes32 vs,
         uint256 amount,
         TakerTraits takerTraits
-    )
-        external
-        payable
-        returns (uint256 makingAmount, uint256 takingAmount, bytes32 orderHash)
-    {
-        return
-            limitOrderProtocol.fillOrder{value: msg.value}(
-                order,
-                r,
-                vs,
-                amount,
-                takerTraits
-            );
+    ) external payable returns (uint256 makingAmount, uint256 takingAmount, bytes32 orderHash) {
+        return limitOrderProtocol.fillOrder{value: msg.value}(order, r, vs, amount, takerTraits);
     }
 
     /**
      * @notice Gets NEAR swap data for a given order
      */
-    function getNearSwapData(
-        bytes32 orderHash
-    ) external view returns (NearSwapData memory) {
+    function getNearSwapData(bytes32 orderHash) external view returns (NearSwapData memory) {
         return nearSwapData[orderHash];
     }
 
     /**
      * @notice Validates order for NEAR cross-chain compatibility
      */
-    function isValidNearOrder(
-        IOrderMixin.Order calldata order
-    ) external pure returns (bool) {
-        return
-            order.makerTraits.needPostInteractionCall() &&
-            order.makerTraits.hasExtension();
+    function isValidNearOrder(IOrderMixin.Order calldata order) external pure returns (bool) {
+        return order.makerTraits.needPostInteractionCall() && order.makerTraits.hasExtension();
     }
 
     /**

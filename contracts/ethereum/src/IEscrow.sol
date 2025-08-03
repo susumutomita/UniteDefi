@@ -11,12 +11,5 @@ interface IEscrow {
     function getDetails()
         external
         view
-        returns (
-            address sender,
-            address recipient,
-            uint256 amount,
-            bytes32 secretHash,
-            uint256 deadline,
-            uint8 state
-        );
+        returns (address sender, address recipient, uint256 amount, bytes32 secretHash, uint256 deadline, uint8 state);
 }
