@@ -7,66 +7,57 @@
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/susumutomita/UniteDefi)
 ![GitHub repo size](https://img.shields.io/github/repo-size/susumutomita/UniteDefi)
 
-A high-performance Rust CLI implementation of 1inch Fusion+ protocol for cross-chain swaps between EVM and non-EVM chains.
+A Rust CLI for trustless atomic swaps between Ethereum (Base Sepolia) and NEAR Protocol using 1inch Limit Order Protocol and HTLC technology.
 
-## 🏆 ETHGlobal Unite - Track 1: Cross-chain Swap Extension
+## 🏆 ETHGlobal Unite - Extend Fusion+ to NEAR
 
-This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethereum and Rust-native non-EVM chains (NEAR, Cosmos, Stellar).
+This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethereum and NEAR Protocol, preserving hashlock and timelock functionality.
 
 ## 🎯 Project Overview
 
-**UniteSwap** provides a unified Rust-based CLI tool that implements the Hash Time Lock Contract (HTLC) pattern for secure cross-chain token swaps. Our implementation preserves the security guarantees of 1inch Fusion+ while extending support to multiple non-EVM chains through a modular, extensible architecture.
+**UniteSwap** provides a Rust-based CLI tool (`fusion-cli`) that implements Hash Time Lock Contracts (HTLC) for secure atomic swaps between EVM and NEAR chains. Our implementation integrates with the official 1inch Limit Order Protocol on Ethereum and custom HTLC contracts on NEAR.
 
 ### Key Features
-- ✅ **NEW: Integrated Swap Command** - Single command for seamless cross-chain swaps
-- ✅ Bidirectional swaps (EVM ↔ non-EVM)
-- ✅ Preserved hashlock and timelock functionality
-- ✅ Multi-chain support (NEAR, Cosmos, Stellar)
-- ✅ Safety deposit mechanism
-- ✅ CLI interface for easy testing and integration
-- ✅ Modular architecture for adding new chains
-- ✅ Automated secret management and monitoring
-- ✅ Batch swap support for multiple transactions
+- ✅ **Official 1inch Integration** - Uses 1inch Limit Order Protocol on Base Sepolia
+- ✅ **Bidirectional swaps** - ETH ↔ NEAR atomic swaps
+- ✅ **HTLC Implementation** - Secure hashlock and timelock functionality
+- ✅ **Integrated Swap Command** - Simplified cross-chain swaps
+- ✅ **Automated Monitoring** - Real-time event tracking on both chains
+- ✅ **Secret Management** - Secure generation and handling of HTLC secrets
 
 ## 🛠️ Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Ethereum      │     │   Fusion+ Core  │     │   Non-EVM       │
-│   (Source)      │◄────┤   Rust CLI      ├────►│   (Target)      │
-│                 │     │                 │     │                 │
-│ - Escrow        │     │ - HTLC Logic    │     │ - NEAR HTLC     │
-│ - 1inch Factory │     │ - Secret Mgmt   │     │ - Cosmos HTLC   │
-│ - ERC20 Tokens  │     │ - Monitoring    │     │ - Stellar HTLC  │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
+┌─────────────────┐     ┌─────────────────┐
+│  Base Sepolia   │     │  NEAR Testnet   │
+│  (Ethereum)     │     │                 │
+├─────────────────┤     ├─────────────────┤
+│ 1inch Protocol: │◄───►│ HTLC Contract:  │
+│ 0x171C87...     │     │ htlc-v2.testnet │
+└────────┬────────┘     └────────┬────────┘
+         │                       │
+         └──────┬────────────────┘
+                │
+         ┌──────────────┐
+         │  fusion-cli  │
+         │    (Rust)    │
+         └──────────────┘
 ```
 
-## 🎯 NEW: Integrated Swap Command
+## 🛠️ Current Implementation Status
 
-The integrated swap command simplifies cross-chain token swaps by automating the entire process:
+### ✅ Implemented
+- HTLC creation, claim, and refund operations
+- 1inch Limit Order creation with HTLC parameters
+- NEAR to Ethereum order creation
+- Order status tracking and cancellation
+- Orderbook viewing
+- Integrated swap command structure
 
-### Why Use the Integrated Swap Command?
-
-**Before (Manual Process):**
-1. Generate secret manually
-2. Create HTLC contract
-3. Create limit order with HTLC parameters
-4. Monitor order execution
-5. Claim funds from HTLC
-6. Handle errors and timeouts manually
-
-**Now (Integrated Swap):**
-```bash
-fusion-cli swap --from-chain ethereum --to-chain near --amount 1.0 ...
-```
-
-### Features:
-- **One Command**: Execute complete cross-chain swaps with a single command
-- **Automated Secret Management**: Secure generation and handling of HTLC secrets
-- **Real-time Monitoring**: Track swap progress and automatic claim execution
-- **Error Recovery**: Built-in retry logic and timeout handling
-- **Batch Support**: Execute multiple swaps from configuration files
-- **Price Oracle Integration**: Automatic price calculation with slippage protection
+### 🚧 In Development
+- Full cross-chain swap execution
+- Automatic event monitoring
+- Secret revelation protocol
 
 ## 🚀 Quick Start
 
@@ -94,15 +85,22 @@ cargo install --path fusion-cli
 ### Quick Example: Create and Claim HTLC
 ```bash
 # 1. Create an HTLC (this generates a secret)
-./target/release/fusion-cli create-htlc \
-  --sender 0x1234567890123456789012345678901234567890 \
+fusion-cli create-htlc \
+  --sender 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
   --recipient 0x9876543210987654321098765432109876543210 \
   --amount 1000000000000000000
 
-# 2. Note the secret and htlc_id from the output, then claim it
-./target/release/fusion-cli claim \
-  --htlc-id <htlc_id_from_output> \
-  --secret <secret_from_output>
+# Output example:
+# {
+#   "htlc_id": "htlc_6c2c0d83",
+#   "secret": "27eddfe62b6a8a7787b2bfe30694d334500ed8f134b5f3f9b7a047605c7a9518",
+#   "secret_hash": "6c2c0d83023b6dba52903a91952ab0cde4a0ce554d80a9f07ec815e54438a263"
+# }
+
+# 2. Claim the HTLC with the secret
+fusion-cli claim \
+  --htlc-id htlc_6c2c0d83 \
+  --secret 27eddfe62b6a8a7787b2bfe30694d334500ed8f134b5f3f9b7a047605c7a9518
 ```
 
 ### Basic Usage
@@ -168,36 +166,21 @@ fusion-cli order cancel --order-id <order-id>
 fusion-cli orderbook --chain ethereum
 ```
 
-#### Integrated Swap Command 🎯 NEW!
+#### Integrated Swap Command (Experimental)
 ```bash
-# Single command for seamless cross-chain swaps
-# Ethereum → NEAR swap
-fusion-cli swap \
+# Execute a cross-chain swap
+fusion-cli swap swap \
   --from-chain ethereum \
   --to-chain near \
   --from-token 0x4200000000000000000000000000000000000006 \
   --to-token NEAR \
   --amount 1.0 \
   --from-address 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
-  --to-address alice.near \
-  --slippage 1.0
+  --to-address alice.near
 
-# NEAR → Ethereum swap  
-fusion-cli swap \
-  --from-chain near \
-  --to-chain ethereum \
-  --from-token NEAR \
-  --to-token 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
-  --amount 10.0 \
-  --from-address alice.near \
-  --to-address 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950
-
-# Advanced swap with custom options
-fusion-cli swap \
-  --from-chain ethereum \
-  --to-chain near \
-  --from-token WETH \
-  --to-token NEAR \
+# Execute batch swaps from config
+fusion-cli swap batch \
+  --config swap-config.json
   --amount 0.5 \
   --from-address 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
   --to-address alice.near \

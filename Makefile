@@ -152,5 +152,8 @@ format_check_all: format_check format_check_near
 setup_husky:
 	pnpm run husky
 
+export_pdf:        # Export pitch deck to PDF using Marp
+	npx marp pitch_deck.md --pdf --allow-local-files --html
+
 .PHONY: before_commit
 before_commit: lint format_check test_coverage
