@@ -4,7 +4,9 @@ use fusion_core::htlc::{generate_secret, hash_secret, Htlc, HtlcState};
 use serde_json::json;
 use std::time::Duration;
 
+mod ethereum_tx;
 mod near_order_handler;
+mod oneinch_api;
 mod order_handler;
 mod order_management;
 mod relay_order_handler;

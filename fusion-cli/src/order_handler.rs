@@ -58,6 +58,14 @@ pub struct CreateOrderArgs {
     /// Recipient address on the target chain
     #[arg(long)]
     pub recipient_address: Option<String>,
+
+    /// Sign the order with private key from PRIVATE_KEY env var
+    #[arg(long)]
+    pub sign: bool,
+
+    /// Submit the order to blockchain (requires PRIVATE_KEY and ETHEREUM_RPC_URL env vars)
+    #[arg(long)]
+    pub submit: bool,
 }
 
 pub async fn handle_create_order(args: CreateOrderArgs) -> Result<()> {
@@ -126,7 +134,7 @@ pub async fn handle_create_order(args: CreateOrderArgs) -> Result<()> {
     let eip712_hash = typed_data.hash();
 
     // Output result
-    let output = json!({
+    let mut output = json!({
         "order": {
             "salt": format!("0x{}", hex::encode(order.salt)),
             "makerAsset": order.maker_asset,
@@ -153,6 +161,71 @@ pub async fn handle_create_order(args: CreateOrderArgs) -> Result<()> {
             "recipient_address": args.recipient_address,
         }
     });
+
+    // Check if we should sign and/or submit the order
+    if args.sign || args.submit {
+        if args.submit {
+            println!("Preparing to sign and submit order to blockchain...");
+        } else {
+            println!("Signing order...");
+        }
+
+        // Get RPC URL and private key from environment
+        let rpc_url = std::env::var("ETHEREUM_RPC_URL")
+            .unwrap_or_else(|_| "https://sepolia.base.org".to_string());
+        let private_key = std::env::var("PRIVATE_KEY").ok();
+
+        // First sign the order
+        if let Some(pk) = &private_key {
+            match crate::ethereum_tx::sign_order_hash(&eip712_hash, pk).await {
+                Ok(signature) => {
+                    // Add signature to output for API submission
+                    let mut signed_output = output.clone();
+                    signed_output["signature"] =
+                        json!(format!("0x{}", hex::encode(signature.to_vec())));
+
+                    println!("Order signed successfully!");
+                    println!("Signature: 0x{}", hex::encode(signature.to_vec()));
+
+                    // Update output with signature
+                    output["signature"] = json!(format!("0x{}", hex::encode(signature.to_vec())));
+
+                    if args.submit {
+                        match crate::ethereum_tx::submit_limit_order(
+                            &signed_output,
+                            &rpc_url,
+                            args.chain_id,
+                            private_key.clone(),
+                        )
+                        .await
+                        {
+                            Ok(receipt) => {
+                                println!("Transaction submitted successfully!");
+                                println!("Transaction hash: {:?}", receipt.transaction_hash);
+                                println!("Block number: {:?}", receipt.block_number);
+                            }
+                            Err(e) => {
+                                println!("Warning: Transaction submission failed: {}", e);
+                                println!(
+                                    "Order has been signed and prepared for manual submission."
+                                );
+                                println!("You can submit the signed order to 1inch API or another relayer.");
+                            }
+                        }
+                    } else {
+                        println!("Order signed successfully. Use --submit to send to blockchain.");
+                    }
+                }
+                Err(e) => {
+                    println!("Error signing order: {}", e);
+                    println!("Order data has been prepared but could not be signed.");
+                }
+            }
+        } else {
+            println!("No private key provided, skipping order signing.");
+            println!("Order data has been prepared for manual signing and submission.");
+        }
+    }
 
     println!("{}", serde_json::to_string_pretty(&output)?);
     Ok(())
