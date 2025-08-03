@@ -56,6 +56,15 @@ impl Default for MockPriceOracle {
         );
 
         prices.insert(
+            "WETH".to_string(),
+            PriceData {
+                price: 2000.0, // Same as ETH
+                timestamp: 1700000000,
+                confidence: 0.99,
+            },
+        );
+
+        prices.insert(
             "USDC".to_string(),
             PriceData {
                 price: 1.0,
