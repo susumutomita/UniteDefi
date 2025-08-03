@@ -26,13 +26,17 @@
   ```
 
 #### 3. **On-chain Execution Demo** ✅ COMPLETED
-**実装状況**: テストネット実行可能
+**実装状況**: テストネット実行可能 + 実際のトランザクション送信
 - **Base Sepolia**: デフォルト対応（Chain ID: 84532）
 - **NEAR Testnet**: カスタムHTLCコントラクト対応
 - **1inch Protocol**: 公式Limit Order Protocol使用
+- **実際のトランザクション例**:
+  - Transaction Hash: `0x7f2542bcbba474cd2f32360968be9c59b98dae67873a4a60a1733af355b781cf`
+  - Block: 29102175
+  - Explorer: https://sepolia.basescan.org/tx/0x7f2542bcbba474cd2f32360968be9c59b98dae67873a4a60a1733af355b781cf
 - **証明コマンド**:
   ```bash
-  ./target/release/fusion-cli order create --chain-id 84532 --verifying-contract 0x171C87724E720F2806fc29a010a62897B30fdb62 [...]
+  ./target/release/fusion-cli order create --chain-id 84532 --verifying-contract 0x171C87724E720F2806fc29a010a62897B30fdb62 --sign --submit [...]
   ```
 
 #### 4. **1inch Escrow Integration** ✅ COMPLETED
