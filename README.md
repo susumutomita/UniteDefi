@@ -39,12 +39,12 @@ This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethe
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Ethereum      │     │   Fusion+ Core  │     │   Non-EVM       │
-│   (Source)      │◄────┤   Rust CLI      ├────►│   (Target)      │
+│  Base Sepolia   │     │   Fusion+ Core  │     │  NEAR Protocol  │
+│     (EVM)       │◄────┤   Rust CLI      ├────►│   (Non-EVM)     │
 │                 │     │                 │     │                 │
-│ - Escrow        │     │ - HTLC Logic    │     │ - NEAR HTLC     │
-│ - 1inch Factory │     │ - Secret Mgmt   │     │ - Cosmos HTLC   │
-│ - ERC20 Tokens  │     │ - Monitoring    │     │ - Stellar HTLC  │
+│ - 1inch LOP     │     │ - HTLC Logic    │     │ - HTLC Contract │
+│ - Escrow        │     │ - Secret Mgmt   │     │ - htlc-v2.      │
+│ - ERC20 Tokens  │     │ - Monitoring    │     │   testnet       │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
 
@@ -102,8 +102,8 @@ cargo install --path fusion-cli
 ```bash
 # 1. Create an HTLC (this generates a secret)
 ./target/release/fusion-cli create-htlc \
-  --sender 0x1234567890123456789012345678901234567890 \
-  --recipient 0x9876543210987654321098765432109876543210 \
+  --sender 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
+  --recipient 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
   --amount 1000000000000000000
 
 # 2. Note the secret and htlc_id from the output, then claim it
@@ -118,8 +118,8 @@ cargo install --path fusion-cli
 ```bash
 # Create a new HTLC
 fusion-cli create-htlc \
-  --sender 0x1234567890123456789012345678901234567890 \
-  --recipient 0x9876543210987654321098765432109876543210 \
+  --sender 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
+  --recipient 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
   --amount 1000 \
   --timeout 3600
 
@@ -128,8 +128,8 @@ fusion-cli create-htlc \
 #   "htlc_id": "htlc_6c2c0d83",
 #   "secret": "27eddfe62b6a8a7787b2bfe30694d334500ed8f134b5f3f9b7a047605c7a9518",
 #   "secret_hash": "6c2c0d83023b6dba52903a91952ab0cde4a0ce554d80a9f07ec815e54438a263",
-#   "sender": "0x1234567890123456789012345678901234567890",
-#   "recipient": "0x9876543210987654321098765432109876543210",
+#   "sender": "0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950",
+#   "recipient": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
 #   "amount": 1000,
 #   "timeout_seconds": 3600,
 #   "status": "Pending"
@@ -153,7 +153,7 @@ fusion-cli order create \
   --maker 0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950 \
   --making-amount 1000000000000000000 \
   --taking-amount 3000000000 \
-  --htlc-secret-hash 0x6c2c0d83023b6dba52903a91952ab0cde4a0ce554d80a9f07ec815e54438a263 \
+  --htlc-secret-hash 0x[secret-hash-from-create-htlc] \
   --htlc-timeout 3600 \
   --chain-id 84532 \
   --verifying-contract 0x171C87724E720F2806fc29a010a62897B30fdb62
@@ -236,7 +236,7 @@ fusion-cli swap batch \
 #     "to_token": "USDC",
 #     "amount": 10.0,
 #     "from_address": "bob.near",
-#     "to_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+#     "to_address": "0x7aD8317e9aB4837AEF734e23d1C62F4938a6D950"
 #   }
 # ]
 ```
@@ -245,9 +245,9 @@ fusion-cli swap batch \
 ```bash
 # Relay an order from EVM to another chain (currently only NEAR supported)
 fusion-cli relay-order \
-  --order-hash 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef \
+  --order-hash 0x[actual-order-hash-from-previous-command] \
   --to-chain near \
-  --htlc-secret 0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba \
+  --htlc-secret 0x[actual-secret-from-create-htlc] \
   --near-account alice.near
 ```
 
@@ -322,24 +322,23 @@ pub trait HTLCContract {
 
 ### Supported Chains
 
+#### Base Sepolia (EVM)
+
+- 1inch Limit Order Protocol: `0x171C87724E720F2806fc29a010a62897B30fdb62`
+- Escrow Factory: `0x848285f35044e485BD5F0235c27924b1392144b3`
+- Full ERC20 token support
+
 #### NEAR Protocol
-- Smart contract: `contracts/near/htlc.rs`
+
+- Smart contract: `htlc-v2.testnet`
 - Uses NEAR's native timing and storage
 - Gas-efficient implementation
-
-#### Cosmos
-- CosmWasm contract: `contracts/cosmos/htlc.rs`
-- IBC-ready for future expansion
-- Supports multiple Cosmos zones
-
-#### Stellar
-- Stellar smart contract using Soroban
-- Optimized for Stellar's unique architecture
-- Low-cost operations
+- Fully tested and operational
 
 ## 🧪 Testing
 
 ### Run Tests
+
 ```bash
 # Unit tests (workspace only)
 cargo test --workspace
@@ -356,20 +355,20 @@ cd contracts/near-htlc && cargo test
 
 ### Testnet Deployments
 
-- **Ethereum**: Sepolia testnet - 1inch Limit Order Protocol integration
-- **NEAR**: Testnet (testnet.near.org) - Custom HTLC contracts
-- **Base**: Base Sepolia testnet - Default deployment target
+- **Base Sepolia**: 1inch Limit Order Protocol integration (default)
+- **NEAR Testnet**: Custom HTLC contracts at `htlc-v2.testnet`
 
 ## 📊 Performance Metrics
 
-| Metric | Ethereum | NEAR | Base |
-|--------|----------|------|------|
-| Avg Swap Time | 15s | 2s | 5s |
-| Gas Cost | $5-20 | <$0.01 | $0.10-1 |
-| Finality | 12 blocks | 2 blocks | 2 blocks |
+| Metric | Base Sepolia | NEAR Testnet |
+|--------|--------------|---------------|
+| Avg Swap Time | ~30s | ~5s |
+| Transaction Cost | ~$0.10 | <$0.01 |
+| Finality | 2-3 blocks | 2 blocks |
 
 ## 🏗️ Project Structure
-```
+
+```text
 UniteDefi/
 ├── fusion-cli/         # CLI implementation
 │   ├── src/           # CLI source code
@@ -390,38 +389,46 @@ UniteDefi/
 
 1. **Secret Generation**: Uses cryptographically secure random number generation
 2. **Timeout Handling**: Automatic refunds after timeout expiration
-3. **Safety Deposits**: Prevents griefing attacks through economic incentives
+3. **Atomic Guarantees**: Both chains succeed or both fail - no funds at risk
 4. **Signature Verification**: All operations require proper authorization
 
 ## 📍 Deployed Contracts
 
 ### Base Sepolia (Chain ID: 84532)
+
 - **Limit Order Protocol**: [`0x171C87724E720F2806fc29a010a62897B30fdb62`](https://sepolia.basescan.org/address/0x171C87724E720F2806fc29a010a62897B30fdb62)
 - **Escrow Factory**: [`0x848285f35044e485BD5F0235c27924b1392144b3`](https://sepolia.basescan.org/address/0x848285f35044e485BD5F0235c27924b1392144b3)
 
 ### NEAR Testnet
+
 - **HTLC Contract**:
   - `htlc-v2.testnet` (fully operational)
-  - Explorer: https://testnet.nearblocks.io/address/htlc-v2.testnet
+  - Explorer: [https://testnet.nearblocks.io/address/htlc-v2.testnet](https://testnet.nearblocks.io/address/htlc-v2.testnet)
   - Owner: `uniteswap.testnet`
   - Status: ✅ Live and tested
 
 ## 🎬 Demo
 
 ### Quick Demo
+
 Test the NEAR HTLC functionality:
+
 ```bash
 ./demo/quick-demo.sh
 ```
 
 ### Full Cross-Chain Demo
+
 Simulate a complete atomic swap between Ethereum and NEAR:
+
 ```bash
 ./demo/cross-chain-swap-demo.sh
 ```
 
 ### Demo Guide
+
 For detailed instructions and troubleshooting:
+
 ```bash
 cat demo/DEMO_GUIDE.md
 ```
