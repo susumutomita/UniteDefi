@@ -1,0 +1,25 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#627EEA;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B7FEA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00C08B;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <!-- Interconnected circles representing chains -->
+  <g transform="translate(50, 50)">
+    <!-- Left circle (EVM) -->
+    <circle cx="-15" cy="0" r="20" fill="#627EEA" opacity="0.8"/>
+    <!-- Right circle (NEAR) -->
+    <circle cx="15" cy="0" r="20" fill="#00C08B" opacity="0.8"/>
+    <!-- Center overlap -->
+    <ellipse cx="0" cy="0" rx="12" ry="20" fill="url(#iconGradient)" opacity="0.9"/>
+    
+    <!-- Center symbol -->
+    <text x="0" y="6" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">U</text>
+  </g>
+</svg>

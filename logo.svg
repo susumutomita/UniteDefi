@@ -1,0 +1,28 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="95" fill="#f5f5f5" stroke="#2c3e50" stroke-width="2"/>
+  
+  <!-- Unite text -->
+  <text x="100" y="80" font-family="Arial, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="#2c3e50">Unite</text>
+  
+  <!-- Swap text -->
+  <text x="100" y="110" font-family="Arial, sans-serif" font-size="28" text-anchor="middle" fill="#34495e">Swap</text>
+  
+  <!-- Connection symbol -->
+  <g transform="translate(100, 140)">
+    <!-- Left chain (EVM) -->
+    <circle cx="-30" cy="0" r="12" fill="#627EEA" opacity="0.9"/>
+    <text x="-30" y="5" font-family="Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" fill="white">E</text>
+    
+    <!-- Connection arrows -->
+    <path d="M -18 -3 L -5 -3 L -5 -6 L 5 0 L -5 6 L -5 3 L -18 3" fill="#34495e" opacity="0.7"/>
+    <path d="M 18 3 L 5 3 L 5 6 L -5 0 L 5 -6 L 5 -3 L 18 -3" fill="#34495e" opacity="0.7"/>
+    
+    <!-- Right chain (NEAR) -->
+    <circle cx="30" cy="0" r="12" fill="#00C08B" opacity="0.9"/>
+    <text x="30" y="5" font-family="Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" fill="white">N</text>
+  </g>
+  
+  <!-- Subtitle -->
+  <text x="100" y="175" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#7f8c8d">EVM ↔ NEAR Bridge</text>
+</svg>

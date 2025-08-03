@@ -1,4 +1,12 @@
-# UniteSwap
+<div align="center">
+  <img src="logo.svg" alt="UniteSwap Logo" width="200" height="200">
+
+  # UniteSwap
+
+  **First EVM ↔️ NEAR Atomic Swap Bridge**
+</div>
+
+<div align="center">
 
 [![CI](https://github.com/susumutomita/UniteDefi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/susumutomita/UniteDefi/actions/workflows/ci.yml)
 ![GitHub last commit (by committer)](https://img.shields.io/github/last-commit/susumutomita/UniteDefi)
@@ -7,26 +15,25 @@
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/susumutomita/UniteDefi)
 ![GitHub repo size](https://img.shields.io/github/repo-size/susumutomita/UniteDefi)
 
-A high-performance Rust CLI implementation of 1inch Fusion+ protocol for cross-chain swaps between EVM and non-EVM chains.
+</div>
 
-## 🏆 ETHGlobal Unite - Track 1: Cross-chain Swap Extension
+A Rust CLI for trustless atomic swaps between Ethereum (Base Sepolia) and NEAR Protocol using 1inch Limit Order Protocol and HTLC technology.
 
-This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethereum and Rust-native non-EVM chains (NEAR, Cosmos, Stellar).
+## 🏆 ETHGlobal Unite - Extend Fusion+ to NEAR
+
+This project extends 1inch Fusion+ to enable trustless atomic swaps between Ethereum and NEAR Protocol, preserving hashlock and timelock functionality.
 
 ## 🎯 Project Overview
 
-**UniteSwap** provides a unified Rust-based CLI tool that implements the Hash Time Lock Contract (HTLC) pattern for secure cross-chain token swaps. Our implementation preserves the security guarantees of 1inch Fusion+ while extending support to multiple non-EVM chains through a modular, extensible architecture.
+**UniteSwap** provides a Rust-based CLI tool (`fusion-cli`) that implements Hash Time Lock Contracts (HTLC) for secure atomic swaps between EVM and NEAR chains. Our implementation integrates with the official 1inch Limit Order Protocol on Ethereum and custom HTLC contracts on NEAR.
 
 ### Key Features
-- ✅ **NEW: Integrated Swap Command** - Single command for seamless cross-chain swaps
-- ✅ Bidirectional swaps (EVM ↔ non-EVM)
-- ✅ Preserved hashlock and timelock functionality
-- ✅ Multi-chain support (NEAR, Cosmos, Stellar)
-- ✅ Safety deposit mechanism
-- ✅ CLI interface for easy testing and integration
-- ✅ Modular architecture for adding new chains
-- ✅ Automated secret management and monitoring
-- ✅ Batch swap support for multiple transactions
+- ✅ **Official 1inch Integration** - Uses 1inch Limit Order Protocol on Base Sepolia
+- ✅ **Bidirectional swaps** - ETH ↔ NEAR atomic swaps
+- ✅ **HTLC Implementation** - Secure hashlock and timelock functionality
+- ✅ **Integrated Swap Command** - Simplified cross-chain swaps
+- ✅ **Automated Monitoring** - Real-time event tracking on both chains
+- ✅ **Secret Management** - Secure generation and handling of HTLC secrets
 
 ## 🛠️ Architecture
 
@@ -182,7 +189,7 @@ fusion-cli swap \
   --to-address alice.near \
   --slippage 1.0
 
-# NEAR → Ethereum swap  
+# NEAR → Ethereum swap
 fusion-cli swap \
   --from-chain near \
   --to-chain ethereum \
@@ -348,6 +355,7 @@ cd contracts/near-htlc && cargo test
 ```
 
 ### Testnet Deployments
+
 - **Ethereum**: Sepolia testnet - 1inch Limit Order Protocol integration
 - **NEAR**: Testnet (testnet.near.org) - Custom HTLC contracts
 - **Base**: Base Sepolia testnet - Default deployment target
@@ -359,18 +367,6 @@ cd contracts/near-htlc && cargo test
 | Avg Swap Time | 15s | 2s | 5s |
 | Gas Cost | $5-20 | <$0.01 | $0.10-1 |
 | Finality | 12 blocks | 2 blocks | 2 blocks |
-
-## 📚 Documentation
-
-- [Quick Start Guide](docs/QUICK_START.md) - 30分で始めるクロスチェーンスワップ
-- [Implementation Guide](docs/CROSS_CHAIN_IMPLEMENTATION_GUIDE.md) - 詳細な実装ガイド
-- [Implementation Roadmap](docs/IMPLEMENTATION_ROADMAP.md) - ETHGlobal Unite向けロードマップ
-- [Command Reference](docs/COMMANDS.md) - よく使うコマンド集
-
-### 📖 Additional Docs
-- [NEAR HTLC Documentation](contracts/near-htlc/README.md)
-- [Security Test Summary](contracts/near-htlc/SECURITY_TEST_SUMMARY.md)
-- [Research Summary](contracts/near-htlc/RESEARCH_SUMMARY.md)
 
 ## 🏗️ Project Structure
 ```
@@ -404,7 +400,7 @@ UniteDefi/
 - **Escrow Factory**: [`0x848285f35044e485BD5F0235c27924b1392144b3`](https://sepolia.basescan.org/address/0x848285f35044e485BD5F0235c27924b1392144b3)
 
 ### NEAR Testnet
-- **HTLC Contract**: 
+- **HTLC Contract**:
   - `htlc-v2.testnet` (fully operational)
   - Explorer: https://testnet.nearblocks.io/address/htlc-v2.testnet
   - Owner: `uniteswap.testnet`
@@ -433,25 +429,7 @@ cat demo/DEMO_GUIDE.md
 ## 🤝 Team
 
 - **Lead Developer**: [Susumu Tomita](https://susumutomita.netlify.app/)
-- **Blockchain Engineer**: [Team Member]
-- **Security Auditor**: [Team Member]
 
 ## 📜 License
 
 MIT License - see LICENSE file for details
-
-## 🔗 Resources
-
-- [1inch Fusion+ Documentation](https://docs.1inch.io/)
-- [Demo Video](https://youtube.com/your-demo)
-- [Technical Deep Dive](./docs/Fusion-Plus-Technical-Guide.md)
-- [Winning Ideas](./docs/優勝アイデア.md)
-- [Workshop Notes](https://www.youtube.com/watch?v=W2xCf-TCnwc)
-- [DeepWiki](https://deepwiki.com/susumutomita/UniteDefi)
-
-## 🚧 Future Roadmap
-
-1. **Phase 1**: Additional chain support (Aptos, Sui)
-2. **Phase 2**: Web interface and SDK
-3. **Phase 3**: Integration with 1inch production infrastructure
-4. **Phase 4**: Decentralized relayer network
