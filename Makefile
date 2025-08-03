@@ -4,28 +4,32 @@
 help:
 	@echo "Available targets:"
 	@echo "  make install       - Install Node.js dependencies and check Rust"
-	@echo "  make lint          - Run all linters (Markdown, Rust, YAML)"
+	@echo "  make lint          - Run all linters (Markdown, Rust, YAML, Solidity)"
 	@echo "  make lint_md       - Run textlint on markdown files"
 	@echo "  make lint_rust     - Run cargo clippy on workspace"
 	@echo "  make lint_rust_near - Run cargo clippy on NEAR contracts"
 	@echo "  make lint_yaml     - Run yamllint on YAML files"
+	@echo "  make lint_solidity - Run Solidity linters and security checks"
 	@echo "  make lint_fix      - Fix all auto-fixable lint issues"
 	@echo "  make lint_fix_md   - Fix textlint errors"
 	@echo "  make lint_fix_rust - Fix clippy warnings"
 	@echo "  make test          - Run workspace tests"
 	@echo "  make test_near     - Run NEAR contract tests"
-	@echo "  make test_all      - Run all tests (workspace + NEAR)"
+	@echo "  make test_solidity - Run Solidity contract tests"
+	@echo "  make test_all      - Run all tests (workspace + NEAR + Solidity)"
 	@echo "  make test_security - Run security-focused tests"
 	@echo "  make test_coverage - Run tests with coverage report"
 	@echo "  make test_coverage_html - Run tests with HTML coverage report"
 	@echo "  make coverage_open - Open HTML coverage report in browser"
 	@echo "  make format        - Format workspace Rust code"
 	@echo "  make format_near   - Format NEAR contract code"
-	@echo "  make format_all    - Format all Rust code"
+	@echo "  make format_solidity - Format Solidity code"
+	@echo "  make format_all    - Format all code (Rust + Solidity)"
 	@echo "  make format_check  - Check workspace Rust code formatting"
 	@echo "  make format_check_near - Check NEAR contract formatting"
-	@echo "  make format_check_all - Check all Rust code formatting"
-	@echo "  make before_commit - Run all checks before commit (workspace only)"
+	@echo "  make format_check_solidity - Check Solidity formatting"
+	@echo "  make format_check_all - Check all code formatting"
+	@echo "  make before_commit - Run all checks before commit"
 
 PNPM_RUN_TARGETS = preview
 
@@ -50,8 +54,28 @@ lint_rust_near:
 lint_yaml:
 	pnpm run lint:yaml
 
+.PHONY: lint_solidity
+lint_solidity:
+	@echo "Running Solidity checks..."
+	@if [ -d contracts/ethereum ]; then \
+		cd contracts/ethereum && \
+		echo "  Checking formatting..." && \
+		forge fmt --check && \
+		echo "  Building contracts..." && \
+		forge build && \
+		echo "  Running tests..." && \
+		forge test && \
+		echo "  Running Solhint..." && \
+		(which solhint > /dev/null && solhint 'src/**/*.sol' || echo "  Solhint not installed, skipping...") && \
+		echo "  Running Slither security analysis..." && \
+		(which slither > /dev/null && slither src/ --filter-paths "lib/|test/" --exclude-informational --exclude-low || echo "  Slither not installed, skipping...") && \
+		echo "Solidity checks completed!"; \
+	else \
+		echo "No Solidity contracts found, skipping..."; \
+	fi
+
 .PHONY: lint
-lint: lint_md lint_rust lint_yaml
+lint: lint_md lint_rust lint_yaml lint_solidity
 	@echo "All lint checks completed"
 
 .PHONY: install
@@ -59,6 +83,9 @@ install:
 	git submodule update --init --recursive
 	pnpm install
 	cargo --version || (echo "Rust is not installed. Please install from https://rustup.rs/" && exit 1)
+	@if [ -d contracts/ethereum ]; then \
+		forge --version || (echo "Foundry is not installed. Please install from https://getfoundry.sh/" && exit 1); \
+	fi
 
 .PHONY: lint_fix_md
 lint_fix_md:
@@ -88,8 +115,17 @@ test_near:
 	fi
 	@echo "All NEAR tests completed!"
 
+.PHONY: test_solidity
+test_solidity:
+	@echo "Running Solidity tests..."
+	@if [ -d contracts/ethereum ]; then \
+		cd contracts/ethereum && forge test -vvv; \
+	else \
+		echo "No Solidity contracts found, skipping..."; \
+	fi
+
 .PHONY: test_all
-test_all: test test_near
+test_all: test test_near test_solidity
 	@echo "All tests completed!"
 
 .PHONY: test_security
@@ -131,8 +167,17 @@ format_near:
 	cd contracts/near-htlc && cargo fmt
 	@echo "NEAR formatting completed!"
 
+.PHONY: format_solidity
+format_solidity:
+	@echo "Formatting Solidity code..."
+	@if [ -d contracts/ethereum ]; then \
+		cd contracts/ethereum && forge fmt; \
+	else \
+		echo "No Solidity contracts found, skipping..."; \
+	fi
+
 .PHONY: format_all
-format_all: format format_near
+format_all: format format_near format_solidity
 	@echo "All formatting completed!"
 
 .PHONY: format_check
@@ -145,12 +190,21 @@ format_check_near:
 	@echo "Checking NEAR HTLC formatting..."
 	cd contracts/near-htlc && cargo fmt -- --check
 
+.PHONY: format_check_solidity
+format_check_solidity:
+	@echo "Checking Solidity formatting..."
+	@if [ -d contracts/ethereum ]; then \
+		cd contracts/ethereum && forge fmt --check; \
+	else \
+		echo "No Solidity contracts found, skipping..."; \
+	fi
+
 .PHONY: format_check_all
-format_check_all: format_check format_check_near
+format_check_all: format_check format_check_near format_check_solidity
 	@echo "All format checks completed!"
 
 setup_husky:
 	pnpm run husky
 
 .PHONY: before_commit
-before_commit: lint format_check test_coverage
+before_commit: lint format_check_all test_coverage test_solidity
