@@ -25,6 +25,7 @@ near-jsonrpc-client = "0.12"
 near-jsonrpc-primitives = "0.23"
 near-primitives = "0.23"
 near-crypto = "0.23"
+tracing = "0.1"
 
 [build-dependencies]
 ethers = { version = "2.0", features = ["abigen"] }

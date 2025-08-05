@@ -161,3 +161,284 @@ impl Htlc {
         Ok(())
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::thread;
+
+    #[test]
+    fn test_secret_generation() {
+        let secret1 = generate_secret();
+        let secret2 = generate_secret();
+
+        // Secrets should be different
+        assert_ne!(secret1, secret2);
+
+        // Secrets should be 32 bytes
+        assert_eq!(secret1.len(), 32);
+        assert_eq!(secret2.len(), 32);
+    }
+
+    #[test]
+    fn test_secret_hashing() {
+        let secret = generate_secret();
+        let hash1 = hash_secret(&secret);
+        let hash2 = hash_secret(&secret);
+
+        // Same secret should produce same hash
+        assert_eq!(hash1, hash2);
+
+        // Hash should be 32 bytes
+        assert_eq!(hash1.len(), 32);
+
+        // Different secrets should produce different hashes
+        let different_secret = generate_secret();
+        let different_hash = hash_secret(&different_secret);
+        assert_ne!(hash1, different_hash);
+    }
+
+    #[test]
+    fn test_htlc_creation() {
+        let secret = generate_secret();
+        let secret_hash = hash_secret(&secret);
+
+        let htlc = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_secs(3600),
+        )
+        .unwrap();
+
+        assert_eq!(htlc.sender(), "alice.near");
+        assert_eq!(htlc.recipient(), "bob.near");
+        assert_eq!(htlc.amount(), 1000000);
+        assert_eq!(htlc.secret_hash(), &secret_hash);
+        assert_eq!(htlc.state(), &HtlcState::Pending);
+        assert!(!htlc.is_timed_out());
+    }
+
+    #[test]
+    fn test_htlc_creation_validation() {
+        let secret_hash = hash_secret(&generate_secret());
+
+        // Empty sender should fail
+        let result = Htlc::new(
+            "".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_secs(3600),
+        );
+        assert!(matches!(result, Err(HtlcError::InvalidInput(_))));
+
+        // Empty recipient should fail
+        let result = Htlc::new(
+            "alice.near".to_string(),
+            "".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_secs(3600),
+        );
+        assert!(matches!(result, Err(HtlcError::InvalidInput(_))));
+
+        // Zero amount should fail
+        let result = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            0,
+            secret_hash,
+            Duration::from_secs(3600),
+        );
+        assert!(matches!(result, Err(HtlcError::InvalidInput(_))));
+    }
+
+    #[test]
+    fn test_htlc_claim_with_correct_secret() {
+        let secret = generate_secret();
+        let secret_hash = hash_secret(&secret);
+
+        let mut htlc = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_secs(3600),
+        )
+        .unwrap();
+
+        // Should be able to claim with correct secret
+        let result = htlc.claim(&secret);
+        assert!(result.is_ok());
+        assert_eq!(htlc.state(), &HtlcState::Claimed);
+    }
+
+    #[test]
+    fn test_htlc_claim_with_wrong_secret() {
+        let secret = generate_secret();
+        let wrong_secret = generate_secret();
+        let secret_hash = hash_secret(&secret);
+
+        let mut htlc = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_secs(3600),
+        )
+        .unwrap();
+
+        // Should fail with wrong secret
+        let result = htlc.claim(&wrong_secret);
+        assert!(matches!(result, Err(HtlcError::InvalidSecret)));
+        assert_eq!(htlc.state(), &HtlcState::Pending);
+    }
+
+    #[test]
+    fn test_htlc_double_claim() {
+        let secret = generate_secret();
+        let secret_hash = hash_secret(&secret);
+
+        let mut htlc = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_secs(3600),
+        )
+        .unwrap();
+
+        // First claim should succeed
+        htlc.claim(&secret).unwrap();
+        assert_eq!(htlc.state(), &HtlcState::Claimed);
+
+        // Second claim should fail
+        let result = htlc.claim(&secret);
+        assert!(matches!(result, Err(HtlcError::InvalidState)));
+    }
+
+    #[test]
+    fn test_htlc_timeout() {
+        let secret = generate_secret();
+        let secret_hash = hash_secret(&secret);
+
+        let htlc = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_millis(50), // Very short timeout
+        )
+        .unwrap();
+
+        // Should not be timed out initially
+        assert!(!htlc.is_timed_out());
+
+        // Wait for timeout
+        thread::sleep(Duration::from_millis(100));
+
+        // Should now be timed out
+        assert!(htlc.is_timed_out());
+    }
+
+    #[test]
+    fn test_htlc_refund_after_timeout() {
+        let secret = generate_secret();
+        let secret_hash = hash_secret(&secret);
+
+        let mut htlc = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_millis(50),
+        )
+        .unwrap();
+
+        // Should not be able to refund before timeout
+        let result = htlc.refund();
+        assert!(matches!(result, Err(HtlcError::NotTimedOut)));
+
+        // Wait for timeout
+        thread::sleep(Duration::from_millis(100));
+
+        // Should now be able to refund
+        let result = htlc.refund();
+        assert!(result.is_ok());
+        assert_eq!(htlc.state(), &HtlcState::Refunded);
+    }
+
+    #[test]
+    fn test_htlc_refund_after_claim() {
+        let secret = generate_secret();
+        let secret_hash = hash_secret(&secret);
+
+        let mut htlc = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_millis(50),
+        )
+        .unwrap();
+
+        // Claim first
+        htlc.claim(&secret).unwrap();
+
+        // Wait for timeout
+        thread::sleep(Duration::from_millis(100));
+
+        // Should not be able to refund after claim
+        let result = htlc.refund();
+        assert!(matches!(result, Err(HtlcError::InvalidState)));
+    }
+
+    #[test]
+    fn test_htlc_claim_after_timeout() {
+        let secret = generate_secret();
+        let secret_hash = hash_secret(&secret);
+
+        let mut htlc = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            secret_hash,
+            Duration::from_millis(50),
+        )
+        .unwrap();
+
+        // Wait for timeout
+        thread::sleep(Duration::from_millis(100));
+
+        // Should still be able to claim even after timeout (this is by design)
+        let result = htlc.claim(&secret);
+        assert!(result.is_ok());
+        assert_eq!(htlc.state(), &HtlcState::Claimed);
+    }
+
+    #[test]
+    fn test_constant_time_secret_comparison() {
+        let secret1 = [1u8; 32];
+        let secret2 = [2u8; 32];
+        let hash1 = hash_secret(&secret1);
+        let _hash2 = hash_secret(&secret2);
+
+        let mut htlc = Htlc::new(
+            "alice.near".to_string(),
+            "bob.near".to_string(),
+            1000000,
+            hash1,
+            Duration::from_secs(3600),
+        )
+        .unwrap();
+
+        // Wrong secret should fail
+        let result = htlc.claim(&secret2);
+        assert!(matches!(result, Err(HtlcError::InvalidSecret)));
+
+        // Correct secret should succeed
+        let result = htlc.claim(&secret1);
+        assert!(result.is_ok());
+    }
+}

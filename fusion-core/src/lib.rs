@@ -17,3 +17,7 @@ pub mod automated_executor;
 pub mod enhanced_price_oracle;
 pub mod execution_path_optimizer;
 pub mod order_matching_engine;
+
+// Integration tests
+#[cfg(test)]
+pub mod secret_manager_integration_test;

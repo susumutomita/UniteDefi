@@ -75,8 +75,6 @@ style: |
 
 1. **Create HTLC** → Get secret
 2. **Create Order** → 1inch protocol
-3. **Execute Swap** → Atomic exchange
-4. **Auto Claim** → Complete!
 
 ```bash
 fusion-cli create-htlc --sender 0x7aD8...

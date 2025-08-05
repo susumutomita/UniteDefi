@@ -1,7 +1,7 @@
 use fusion_core::chains::near_events::{NearEventParser, NearHtlcClaimEvent, NearHtlcCreateEvent};
 use fusion_core::chains::near_monitor::{MonitorConfig, NearHtlcMonitor};
 use fusion_core::event_order_linker::{OrderManager, OrderStatus};
-use fusion_core::htlc::{generate_secret, hash_secret};
+
 use fusion_core::order::Order;
 use fusion_core::secret_manager::{CrossChainClaimRequest, CrossChainExecutor, SecretManager};
 use std::time::Duration;
@@ -72,9 +72,9 @@ async fn should_complete_full_cross_chain_swap_flow() {
     let mut secret_manager = SecretManager::new();
     let cross_chain_executor = CrossChainExecutor::new();
 
-    // 1. オーダー作成
-    let secret = generate_secret();
-    let secret_hash = hash_secret(&secret);
+    // 1. オーダー作成とシークレット生成
+    let secret_hash = secret_manager.generate_secret("fusion_0").unwrap();
+    let secret = *secret_manager.get_secret("fusion_0").unwrap();
     let order = create_test_order();
     order_manager.add_order("test_order", order).await;
 
@@ -100,11 +100,8 @@ async fn should_complete_full_cross_chain_swap_flow() {
         .unwrap();
 
     // シークレット取得確認
-    let stored_secret = secret_manager
-        .get_secret(&claim_event.escrow_id)
-        .await
-        .unwrap();
-    assert_eq!(stored_secret, claim_event.secret);
+    let stored_secret = secret_manager.get_secret(&claim_event.escrow_id).unwrap();
+    assert_eq!(hex::encode(stored_secret), claim_event.secret);
 
     // 5. クロスチェーン実行（モック）
     let ethereum_connector = MockEthereumConnector::new("https://sepolia.infura.io/v3/test")
@@ -114,7 +111,7 @@ async fn should_complete_full_cross_chain_swap_flow() {
     let claim_request = CrossChainClaimRequest {
         target_chain: "ethereum".to_string(),
         htlc_id: "0x1234567890abcdef".to_string(),
-        secret: stored_secret,
+        secret: hex::encode(stored_secret),
         recipient: "0x456789abcdef".to_string(),
     };
 
