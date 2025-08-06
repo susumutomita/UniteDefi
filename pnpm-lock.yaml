@@ -2075,8 +2075,8 @@ packages:
     engines: {node: '>=20.0.0'}
     hasBin: true
 
-  tmp@0.2.3:
-    resolution: {integrity: sha512-nZD7m9iCPC5g0pYmcaxogYKggSfLsdxl8of3Q/oIbqCqLLIO9IAF0GWjX1z9NZRHPiXv8Wex4yDCaZsgEw0Y8w==}
+  tmp@0.2.4:
+    resolution: {integrity: sha512-UdiSoX6ypifLmrfQ/XfiawN6hkjSBpCjhKxxZcWlUUmoXLaCKQU0bx4HF/tdDK2uzRuchf1txGvrWBzYREssoQ==}
     engines: {node: '>=14.14'}
 
   to-regex-range@5.0.1:
@@ -2395,7 +2395,7 @@ snapshots:
       cosmiconfig: 9.0.0
       puppeteer-core: 24.15.0
       serve-index: 1.9.1
-      tmp: 0.2.3
+      tmp: 0.2.4
       ws: 8.18.3
       yargs: 17.7.2
     transitivePeerDependencies:
@@ -4922,7 +4922,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  tmp@0.2.3: {}
+  tmp@0.2.4: {}
 
   to-regex-range@5.0.1:
     dependencies:
